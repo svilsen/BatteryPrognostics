@@ -1,21 +1,22 @@
 #' @title Extract look-up tables.
 #' 
-#' @description Extracts RC2 parameter look-up tables from simple charge/discharge cycling profile.
+#' @description Extracts RC-K parameter look-up tables from simple charge/discharge cycling profile.
 #' 
 #' @param current A periodic current profile.
 #' @param voltage A periodic voltage profile.
 #' @param time_s The sampling time.
 #' @param t_k The time intervals for each of the RC-units.
-#' @param h R0 reduction fraction.
+#' @param h R0 reduction fraction. NOTE: THIS SHOULD NOT BE NECESSARY AND, THEREFORE, SET TO 1.
 #' @param SOCList A vector of possible 'SOC' values.
 #' @param IList A vector of possible 'Current' values.
+#' @param capacityScalingParameters A list of parameters used for scaling the capacity. NOTE: THIS SHOULD NOT BE NECESSARY AND SHOULD LEFT AS DEFAULT ('NULL'). 
 #' 
 #' @return A list of look-up table matrices.
 #' @export
 extractLookupTables <- function(current, voltage, time_s, t_k, 
-                                capacityScalingParameters = NULL,
                                 h = 0.65, SOCList = seq(5, 95, 5), 
-                                IList = c(-10, -7.5, -5, -2.5, -1.25, -0.25, 0.25, 1.25, 2.5, 5, 7.5, 10)) {
+                                IList = c(-10, -7.5, -5, -2.5, -1.25, -0.25, 0.25, 1.25, 2.5, 5, 7.5, 10),
+                                capacityScalingParameters = NULL) {
     RawTibble = tibble(V = c(voltage), I = c(current), Time_s = c(time_s)) %>% 
         mutate(CD = ifelse(I == 0, 0, ifelse(I < 0, -1, 1))) 
     
@@ -138,9 +139,9 @@ RCK <- function(current, voltage, listOfTables, listOfDimensions, dt = 1, SOCSta
         }
     }
     
-    res <- RCKCpp(current, currentChange, currentFixed, voltage, 
-                   listOfTables$R0, listOfTables$Rk, listOfTables$Ck, listOfTables$Cap, listOfTables$OCV, 
-                   listOfDimensions$SOCList, listOfDimensions$IList, 
-                   dt, SOCStart, trace, traceLimit)
+    res <- RCKCpp(current, currentChange, currentFixed, voltage,
+                  listOfTables$R0, listOfTables$Rk, listOfTables$Ck, listOfTables$Cap, listOfTables$OCV,
+                  listOfDimensions$SOCList, listOfDimensions$IList,
+                  dt, SOCStart, trace, traceLimit)
     return(res)
 }
