@@ -6,16 +6,53 @@
 
 using namespace Rcpp;
 
+// SODEFK
+Rcpp::List SODEFK(const arma::colvec& I, const arma::colvec& V, const arma::colvec& theta_0, const double& SOC_0, const double& C_max, const double& dt, const unsigned int K, const bool& trace, const unsigned int& traceLimit);
+RcppExport SEXP _BatteryPrognostics_SODEFK(SEXP ISEXP, SEXP VSEXP, SEXP theta_0SEXP, SEXP SOC_0SEXP, SEXP C_maxSEXP, SEXP dtSEXP, SEXP KSEXP, SEXP traceSEXP, SEXP traceLimitSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::colvec& >::type I(ISEXP);
+    Rcpp::traits::input_parameter< const arma::colvec& >::type V(VSEXP);
+    Rcpp::traits::input_parameter< const arma::colvec& >::type theta_0(theta_0SEXP);
+    Rcpp::traits::input_parameter< const double& >::type SOC_0(SOC_0SEXP);
+    Rcpp::traits::input_parameter< const double& >::type C_max(C_maxSEXP);
+    Rcpp::traits::input_parameter< const double& >::type dt(dtSEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type K(KSEXP);
+    Rcpp::traits::input_parameter< const bool& >::type trace(traceSEXP);
+    Rcpp::traits::input_parameter< const unsigned int& >::type traceLimit(traceLimitSEXP);
+    rcpp_result_gen = Rcpp::wrap(SODEFK(I, V, theta_0, SOC_0, C_max, dt, K, trace, traceLimit));
+    return rcpp_result_gen;
+END_RCPP
+}
+// SOEFK
+Rcpp::List SOEFK(const arma::colvec& I, const arma::colvec& IF, const arma::colvec& V, const std::vector<arma::mat>& parameters_0, const double& SOC_0, const double& dt, const unsigned int K, const bool& trace, const unsigned int& traceLimit);
+RcppExport SEXP _BatteryPrognostics_SOEFK(SEXP ISEXP, SEXP IFSEXP, SEXP VSEXP, SEXP parameters_0SEXP, SEXP SOC_0SEXP, SEXP dtSEXP, SEXP KSEXP, SEXP traceSEXP, SEXP traceLimitSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::colvec& >::type I(ISEXP);
+    Rcpp::traits::input_parameter< const arma::colvec& >::type IF(IFSEXP);
+    Rcpp::traits::input_parameter< const arma::colvec& >::type V(VSEXP);
+    Rcpp::traits::input_parameter< const std::vector<arma::mat>& >::type parameters_0(parameters_0SEXP);
+    Rcpp::traits::input_parameter< const double& >::type SOC_0(SOC_0SEXP);
+    Rcpp::traits::input_parameter< const double& >::type dt(dtSEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type K(KSEXP);
+    Rcpp::traits::input_parameter< const bool& >::type trace(traceSEXP);
+    Rcpp::traits::input_parameter< const unsigned int& >::type traceLimit(traceLimitSEXP);
+    rcpp_result_gen = Rcpp::wrap(SOEFK(I, IF, V, parameters_0, SOC_0, dt, K, trace, traceLimit));
+    return rcpp_result_gen;
+END_RCPP
+}
 // RCKCpp
-Rcpp::List RCKCpp(const arma::colvec& I, const arma::colvec& IC, const arma::colvec& IF, const arma::colvec& V, const arma::mat& R0, const std::vector<arma::mat>& Rk, const std::vector<arma::mat>& Ck, const arma::mat& Cap, const arma::mat& OCV, const arma::colvec SOCList, const arma::colvec IList, const double& dt, const double& SOCStart, const bool& trace, const unsigned int& traceLimit);
-RcppExport SEXP _BatteryPrognostics_RCKCpp(SEXP ISEXP, SEXP ICSEXP, SEXP IFSEXP, SEXP VSEXP, SEXP R0SEXP, SEXP RkSEXP, SEXP CkSEXP, SEXP CapSEXP, SEXP OCVSEXP, SEXP SOCListSEXP, SEXP IListSEXP, SEXP dtSEXP, SEXP SOCStartSEXP, SEXP traceSEXP, SEXP traceLimitSEXP) {
+Rcpp::List RCKCpp(const arma::colvec& I, const arma::colvec& IC, const arma::colvec& IF, const arma::mat& R0, const std::vector<arma::mat>& Rk, const std::vector<arma::mat>& Ck, const arma::mat& Cap, const arma::mat& OCV, const arma::colvec SOCList, const arma::colvec IList, const double& dt, const double& SOCStart, const bool& trace, const unsigned int& traceLimit);
+RcppExport SEXP _BatteryPrognostics_RCKCpp(SEXP ISEXP, SEXP ICSEXP, SEXP IFSEXP, SEXP R0SEXP, SEXP RkSEXP, SEXP CkSEXP, SEXP CapSEXP, SEXP OCVSEXP, SEXP SOCListSEXP, SEXP IListSEXP, SEXP dtSEXP, SEXP SOCStartSEXP, SEXP traceSEXP, SEXP traceLimitSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const arma::colvec& >::type I(ISEXP);
     Rcpp::traits::input_parameter< const arma::colvec& >::type IC(ICSEXP);
     Rcpp::traits::input_parameter< const arma::colvec& >::type IF(IFSEXP);
-    Rcpp::traits::input_parameter< const arma::colvec& >::type V(VSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type R0(R0SEXP);
     Rcpp::traits::input_parameter< const std::vector<arma::mat>& >::type Rk(RkSEXP);
     Rcpp::traits::input_parameter< const std::vector<arma::mat>& >::type Ck(CkSEXP);
@@ -27,27 +64,15 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const double& >::type SOCStart(SOCStartSEXP);
     Rcpp::traits::input_parameter< const bool& >::type trace(traceSEXP);
     Rcpp::traits::input_parameter< const unsigned int& >::type traceLimit(traceLimitSEXP);
-    rcpp_result_gen = Rcpp::wrap(RCKCpp(I, IC, IF, V, R0, Rk, Ck, Cap, OCV, SOCList, IList, dt, SOCStart, trace, traceLimit));
-    return rcpp_result_gen;
-END_RCPP
-}
-// SOC
-Rcpp::List SOC(const arma::colvec& I, const arma::colvec& V, const bool& trace);
-RcppExport SEXP _BatteryPrognostics_SOC(SEXP ISEXP, SEXP VSEXP, SEXP traceSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::colvec& >::type I(ISEXP);
-    Rcpp::traits::input_parameter< const arma::colvec& >::type V(VSEXP);
-    Rcpp::traits::input_parameter< const bool& >::type trace(traceSEXP);
-    rcpp_result_gen = Rcpp::wrap(SOC(I, V, trace));
+    rcpp_result_gen = Rcpp::wrap(RCKCpp(I, IC, IF, R0, Rk, Ck, Cap, OCV, SOCList, IList, dt, SOCStart, trace, traceLimit));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_BatteryPrognostics_RCKCpp", (DL_FUNC) &_BatteryPrognostics_RCKCpp, 15},
-    {"_BatteryPrognostics_SOC", (DL_FUNC) &_BatteryPrognostics_SOC, 3},
+    {"_BatteryPrognostics_SODEFK", (DL_FUNC) &_BatteryPrognostics_SODEFK, 9},
+    {"_BatteryPrognostics_SOEFK", (DL_FUNC) &_BatteryPrognostics_SOEFK, 9},
+    {"_BatteryPrognostics_RCKCpp", (DL_FUNC) &_BatteryPrognostics_RCKCpp, 14},
     {NULL, NULL, 0}
 };
 

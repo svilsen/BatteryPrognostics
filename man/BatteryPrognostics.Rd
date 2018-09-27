@@ -4,9 +4,9 @@
 \name{BatteryPrognostics}
 \alias{BatteryPrognostics}
 \alias{BatteryPrognostics-package}
-\title{Battery prognostics}
+\title{Battery Prognostics}
 \description{
-Filtering and prediction for state-of-charge and state-of-health prognostics for Li-ion batteries.
+State-space model used for filtering and prediction of the state-of-charge and the state-of-health of Li-ion batteries by voltage given current and temperature.
 }
 \author{
 Søren B. Vilsen <svilsen@math.aau.dk>

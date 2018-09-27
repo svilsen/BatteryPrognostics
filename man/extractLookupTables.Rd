@@ -5,13 +5,13 @@
 \title{Extract look-up tables.}
 \usage{
 extractLookupTables(current, voltage, time_s, t_k, h = 0.65,
-  SOCList = seq(5, 95, 5), IList = c(-10, -7.5, -5, -2.5, -1.25, -0.25,
+  SOCValues = seq(5, 95, 5), IValues = c(-10, -7.5, -5, -2.5, -1.25, -0.25,
   0.25, 1.25, 2.5, 5, 7.5, 10), capacityScalingParameters = NULL)
 }
 \arguments{
-\item{current}{A periodic current profile.}
+\item{current}{A charge/discharge cycling current profile. Note: assumes that negative current implies discharging of the battery.}
 
-\item{voltage}{A periodic voltage profile.}
+\item{voltage}{A charge/discharge cycling voltage profile.}
 
 \item{time_s}{The sampling time.}
 
@@ -19,9 +19,9 @@ extractLookupTables(current, voltage, time_s, t_k, h = 0.65,
 
 \item{h}{R0 reduction fraction. NOTE: THIS SHOULD NOT BE NECESSARY AND, THEREFORE, SET TO 1.}
 
-\item{SOCList}{A vector of possible 'SOC' values.}
+\item{SOCValues}{A vector of possible 'SOC' values.}
 
-\item{IList}{A vector of possible 'Current' values.}
+\item{IValues}{A vector of possible 'Current' values.}
 
 \item{capacityScalingParameters}{A list of parameters used for scaling the capacity. NOTE: THIS SHOULD NOT BE NECESSARY AND SHOULD LEFT AS DEFAULT ('NULL').}
 }

@@ -1,0 +1,70 @@
+---
+title: "Cloud BMS"
+author: "Søren B. Vilsen"
+date: "`r Sys.Date()`"
+output: 
+    pdf_document:
+        number_sections: true
+    html_document:
+        number_sections: true
+vignette: >
+  %\VignetteIndexEntry{Cloud BMS}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+---
+
+```{r setup, echo = FALSE, message = FALSE, warning = FALSE, results = 'hide'}
+library("tidyverse")
+
+data_dir = "~/AAU/PostDoc/Battery/Data/DynamicAgeProfiles/"
+data_dir_aging = paste0(data_dir, "Aging profiles")
+data_dir_rpt = paste0(data_dir, "RPTs")
+```
+
+# Introduction
+The overall goal of this project is to model (and ultimately predict) the state-of-health (SOH) of Li-ion batteries, given current, voltage, and temperature profiles of batteries in use. This is a very challenging problem as the SOH is not directly observable (it is a latent variable) and will depend on current, temperature, state-of-charge (SOC), and more. Therefore, to develop a solution, we will break the problem into a number of stages. 
+
+# Stage 1
+The first stage and will mainly include a short introduction to the current state-of-the-art. In particular, it will include the following: (1) A short summary of the electrical equivalent circuit (EEC) $n$-RC models, (2) how to construct look-up tables of the parameters included in the EEC models using a cyclical charge/discharge profile, and (3) small simple examples of the 2-RC method used on both simple charge/discharge profiles, and more dynamic charge/discharge profile (meant to mimic a more realistic charge/discharge profile). 
+
++ Incorporate the text from the overleaf document.
+
+# Stage 2
+In the second stage, we will try to model and estimate the parameters of the $n$-RC model, without using a cyclic charge/discharge profile. Instead, we will be using dynamic (more realistic) profiles, with the ultimate goal of using the profiles of batteries in use. The parameters found using the dynamic profiles will be validated using cyclic charge/discharge profiles, originally created to assess the health of the batteries.
+
+
+```{r load_week_1, message = F, warning = F, echo = F, cache = T}
+#
+rpt_files <- list.files(data_dir_rpt, full.names = T)
+rpt_is_week_1 <- stringr::str_detect(rpt_files, "week1.csv")
+rpt_week_1 <- structure(readr::read_delim(rpt_files[rpt_is_week_1], "\t"), .Names = c("Time", "V", "X1", "I", "CD", "X2", "X3", "X4", "X5", "X6", "X7", "X8"))
+
+#
+aging_files <- list.files(data_dir_aging, full.names = T)
+aging_is_week_1 <- which(stringr::str_detect(aging_files, "week1"))
+
+aging_week_1_ <- vector("list", length(aging_is_week_1))
+for (i in seq_along(aging_is_week_1)) {
+    aging_week_1_i <- readr::read_delim(file = aging_files[aging_is_week_1[i]], delim = "\t", skip = 3)
+    aging_week_1_[[i]] <- aging_week_1_i
+}
+
+aging_week_1 <- bind_rows(aging_week_1_) %>% 
+    select(Time = `Test Time`, Capacity, Current, Voltage, MD) %>% 
+    mutate(Day = as.numeric(str_sub(Time, start = 3, end = 3)), 
+           Time = as.POSIXct(str_sub(Time, start = 6), format = "%H:%M:%OS"), 
+           Time = as.numeric(Time - Time[1]) + Day * 24 * 3600, 
+           Current = ifelse(MD == "D", -Current, Current)) %>% 
+    select(-MD) 
+```
+
+
+```{r, echo = F}
+breaks <- pretty(range(aging_week_1$Current), n = nclass.FD(aging_week_1$Current), min.n = 1)
+bwidth <- breaks[2]-breaks[1]
+
+ggplot(aging_week_1, aes(x = Current)) + 
+    geom_histogram(binwidth = bwidth) + 
+    ylab("Count") + theme_bw(base_size = 25)
+```
+

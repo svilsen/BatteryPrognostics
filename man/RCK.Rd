@@ -4,17 +4,13 @@
 \alias{RCK}
 \title{Simulate RC-K model}
 \usage{
-RCK(current, voltage, listOfTables, listOfDimensions, dt = 1, SOCStart = 0,
-  trace = T, traceLimit = 10000)
+RCK(current, extractedTables, dt = 1, SOCStart = 0, trace = T,
+  traceLimit = 10000)
 }
 \arguments{
 \item{current}{A current profile.}
 
-\item{voltage}{A current profile reflecting the change in current (not the measured current).}
-
-\item{listOfTables}{A list containing the look-up tables: 'R0', 'Rk', 'Ck', 'Cap', and 'OCV', where 'Rk' and 'Ck' are lists containing a look-up table for each RC-unit.}
-
-\item{listOfDimensions}{A list containing vectors of the possible 'SOC' and 'Current' values in the look-up tables.}
+\item{extractedTables}{A list containing the possible 'SOC' and 'I' values, and the following look-up tables: 'R0', 'Rk', 'Ck', 'Cap', and 'OCV', where 'Rk' and 'Ck' are lists containing a look-up table for each RC-unit.}
 
 \item{dt}{The simulation step-size.}
 
@@ -23,6 +19,8 @@ RCK(current, voltage, listOfTables, listOfDimensions, dt = 1, SOCStart = 0,
 \item{trace}{TRUE/FALSE: Show trace?}
 
 \item{traceLimit}{Only show the trace for the iterations of specified 'traceLimit'.}
+
+\item{voltage}{A current profile reflecting the change in current (not the measured current).}
 }
 \value{
 A list containing the voltage, the filtered voltage, the SOC, the polarisation voltage, and the state variance.
