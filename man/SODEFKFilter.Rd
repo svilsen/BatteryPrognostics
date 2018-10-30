@@ -4,9 +4,8 @@
 \alias{SODEFKFilter}
 \title{Filtering of state-of-charge and health.}
 \usage{
-SODEFKFilter(I, V, theta_0, ocv_parameters, SOC_0, C_max, eta, P = NULL,
-  Q = NULL, R = NULL, dt = 1, K = 2, trace = TRUE,
-  traceLimit = 1e+06)
+SODEFKFilter(I, V, theta_0, ocv_0, SOC_0, C_max, eta, P = NULL, Q = NULL,
+  R = NULL, dt = 1, K = 2, trace = TRUE, traceLimit = 1e+06)
 }
 \arguments{
 \item{I}{A current profile.}
@@ -15,7 +14,7 @@ SODEFKFilter(I, V, theta_0, ocv_parameters, SOC_0, C_max, eta, P = NULL,
 
 \item{theta_0}{The initial values of the parameter vector.}
 
-\item{ocv_parameters}{The parameters used for the third order polynomial used to model the OCV.}
+\item{ocv_0}{The parameters used for the third order polynomial used to model the OCV.}
 
 \item{SOC_0}{The initial value of the SOC.}
 

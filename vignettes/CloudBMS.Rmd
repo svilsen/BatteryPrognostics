@@ -137,17 +137,20 @@ ggplot(compare_tibble %>% filter(Time > 45000, Time < 47000),
 
 ```{r DEFK, cache = TRUE}
 K <- 2
+eta <- 1
 C_max <- mean(extractedTables$Tables$Cap)
 
-ocv_0 <- c(3.11602927, 0.20411943, -0.12431090, 0.02695484)
+ocv_0 <- c(3.11602927, 0.20411943, -0.12431090, 0.02695484, 0.0)
 theta_0 <- c(log(0.00523), 
              log(0.00490), 2.527,
              log(0.0117), 36.748, 
              1.0, 0.0)
 
 vsb <- microbenchmark(
-    V_simulated <- SODEFK(current, voltage, theta_0, ocv_0, SOC_0, 
-                          C_max, dt, K, trace, traceLimit), 
+    V_simulated <- SODEFKFilter(I = current, V = voltage, theta_0 = theta_0, 
+                                ocv_0 = ocv_0, SOC_0 = SOC_0,
+                                C_max = C_max, dt = dt, K = K, 
+                                trace = trace, traceLimit = traceLimit), 
     times = 1
 )
 
@@ -176,21 +179,27 @@ parameterTibble <- aging_week_1 %>%
            R2 = V_simulated$ThetaTrace[4, ], 
            Tau2 = V_simulated$ThetaTrace[5, ], 
            Eta = V_simulated$ThetaTrace[6, ], 
+           Alpha = V_simulated$ThetaTrace[7, ], 
            SOC = V_simulated$SOC, 
-           SOCRound = mround(SOC, 5))
+           SOCRound = mround(SOC, 5)) %>% 
+    group_by(Day) %>% 
+    mutate(TimeDay = 1:n())
 
-ggplot(parameterTibble %>% filter(Time > 46250, Time < 46500), aes(x = Time, y = exp(R1), colour = SOC)) + 
-    geom_point() + geom_line() + theme_bw() 
+pdf("~/AAU/PostDoc/Battery/BatteryPrognosticsR/TheveninModelR/Figures/DynamicAgedCellWeek1.pdf", width = 25, height = 7)
+ggplot(parameterTibble %>% filter(Time > 2500), aes(x = TimeDay / 3600, y = exp(R0))) + 
+    geom_line() + facet_wrap(~(Day + 1), nrow = 1) + theme_bw(base_size = 25) +
+    xlab("Hour of day") + ylab(bquote(R[0])) + 
+    scale_x_continuous(breaks = c(1, 5, 10, 15, 20, 24))
+dev.off()
 
-for (d in unique(parameterTibble$Day)) {
-    parameterTibble_d <- parameterTibble %>% filter(Day == d)
-    pp <- ggplot(parameterTibble_d[-c(1:10000), ], aes(x = SOC, y = exp(R0))) +
-        geom_point() + facet_wrap(~Day, nrow = 1, scales = "free_x") +
-        geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), se = FALSE) +
-        theme_bw() 
-    
-    show(pp)
-}
+ggplot(parameterTibble %>% filter(Time > 2500), aes(x = TimeDay / 3600, y = Eta)) + 
+    geom_line() + facet_wrap(~(Day + 1)) + theme_bw(base_size = 25) +
+    xlab("Time of day") + ylab(bquote(eta))
+
+ggplot(parameterTibble %>% filter(Time > 2500, Alpha > -0.1), aes(x = TimeDay / 3600, y = Alpha)) + 
+    geom_line() + facet_wrap(~(Day + 1)) + theme_bw(base_size = 25) +
+    xlab("Time of day") + ylab(bquote(alpha))
+
 ```
 
 

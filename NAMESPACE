@@ -3,7 +3,7 @@
 export(RCK)
 export(SODEFKFilter)
 export(SODEFKSmooth)
-export(SODEFKTEST)
+export(UKFParameter)
 export(extractLookupTables)
 import(Rsolnp)
 importFrom(Rcpp,evalCpp)

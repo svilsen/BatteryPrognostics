@@ -7,18 +7,17 @@
 using namespace Rcpp;
 
 // SODEFKFilterCpp
-Rcpp::List SODEFKFilterCpp(const arma::colvec& I, const arma::colvec& V, const arma::colvec& theta_0, const arma::colvec& ocv_parameters, const double& SOC_0, const double& C_max, const double& eta, const std::vector<arma::mat>& P, const std::vector<arma::mat>& Q, const std::vector<arma::mat>& R, const double& dt, const unsigned int K, const bool& trace, const unsigned int& traceLimit);
-RcppExport SEXP _BatteryPrognostics_SODEFKFilterCpp(SEXP ISEXP, SEXP VSEXP, SEXP theta_0SEXP, SEXP ocv_parametersSEXP, SEXP SOC_0SEXP, SEXP C_maxSEXP, SEXP etaSEXP, SEXP PSEXP, SEXP QSEXP, SEXP RSEXP, SEXP dtSEXP, SEXP KSEXP, SEXP traceSEXP, SEXP traceLimitSEXP) {
+Rcpp::List SODEFKFilterCpp(const arma::colvec& I, const arma::colvec& V, const arma::colvec& theta_0, const arma::colvec& ocv_0, const double& SOC_0, const double& C_max, const std::vector<arma::mat>& P, const std::vector<arma::mat>& Q, const std::vector<arma::mat>& R, const double& dt, const unsigned int K, const bool& trace, const unsigned int& traceLimit);
+RcppExport SEXP _BatteryPrognostics_SODEFKFilterCpp(SEXP ISEXP, SEXP VSEXP, SEXP theta_0SEXP, SEXP ocv_0SEXP, SEXP SOC_0SEXP, SEXP C_maxSEXP, SEXP PSEXP, SEXP QSEXP, SEXP RSEXP, SEXP dtSEXP, SEXP KSEXP, SEXP traceSEXP, SEXP traceLimitSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const arma::colvec& >::type I(ISEXP);
     Rcpp::traits::input_parameter< const arma::colvec& >::type V(VSEXP);
     Rcpp::traits::input_parameter< const arma::colvec& >::type theta_0(theta_0SEXP);
-    Rcpp::traits::input_parameter< const arma::colvec& >::type ocv_parameters(ocv_parametersSEXP);
+    Rcpp::traits::input_parameter< const arma::colvec& >::type ocv_0(ocv_0SEXP);
     Rcpp::traits::input_parameter< const double& >::type SOC_0(SOC_0SEXP);
     Rcpp::traits::input_parameter< const double& >::type C_max(C_maxSEXP);
-    Rcpp::traits::input_parameter< const double& >::type eta(etaSEXP);
     Rcpp::traits::input_parameter< const std::vector<arma::mat>& >::type P(PSEXP);
     Rcpp::traits::input_parameter< const std::vector<arma::mat>& >::type Q(QSEXP);
     Rcpp::traits::input_parameter< const std::vector<arma::mat>& >::type R(RSEXP);
@@ -26,23 +25,22 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const unsigned int >::type K(KSEXP);
     Rcpp::traits::input_parameter< const bool& >::type trace(traceSEXP);
     Rcpp::traits::input_parameter< const unsigned int& >::type traceLimit(traceLimitSEXP);
-    rcpp_result_gen = Rcpp::wrap(SODEFKFilterCpp(I, V, theta_0, ocv_parameters, SOC_0, C_max, eta, P, Q, R, dt, K, trace, traceLimit));
+    rcpp_result_gen = Rcpp::wrap(SODEFKFilterCpp(I, V, theta_0, ocv_0, SOC_0, C_max, P, Q, R, dt, K, trace, traceLimit));
     return rcpp_result_gen;
 END_RCPP
 }
 // SODEFKSmoothCpp
-Rcpp::List SODEFKSmoothCpp(const arma::colvec& I, const arma::colvec& V, const arma::colvec& theta_0, const arma::colvec& ocv_parameters, const double& SOC_0, const double& C_max, const double& eta, const std::vector<arma::mat>& P, const std::vector<arma::mat>& Q, const std::vector<arma::mat>& R, const double& dt, const unsigned int K, const bool& trace, const unsigned int& traceLimit);
-RcppExport SEXP _BatteryPrognostics_SODEFKSmoothCpp(SEXP ISEXP, SEXP VSEXP, SEXP theta_0SEXP, SEXP ocv_parametersSEXP, SEXP SOC_0SEXP, SEXP C_maxSEXP, SEXP etaSEXP, SEXP PSEXP, SEXP QSEXP, SEXP RSEXP, SEXP dtSEXP, SEXP KSEXP, SEXP traceSEXP, SEXP traceLimitSEXP) {
+Rcpp::List SODEFKSmoothCpp(const arma::colvec& I, const arma::colvec& V, const arma::colvec& theta_0, const arma::colvec& ocv_0, const double& SOC_0, const double& C_max, const std::vector<arma::mat>& P, const std::vector<arma::mat>& Q, const std::vector<arma::mat>& R, const double& dt, const unsigned int K, const bool& trace, const unsigned int& traceLimit);
+RcppExport SEXP _BatteryPrognostics_SODEFKSmoothCpp(SEXP ISEXP, SEXP VSEXP, SEXP theta_0SEXP, SEXP ocv_0SEXP, SEXP SOC_0SEXP, SEXP C_maxSEXP, SEXP PSEXP, SEXP QSEXP, SEXP RSEXP, SEXP dtSEXP, SEXP KSEXP, SEXP traceSEXP, SEXP traceLimitSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const arma::colvec& >::type I(ISEXP);
     Rcpp::traits::input_parameter< const arma::colvec& >::type V(VSEXP);
     Rcpp::traits::input_parameter< const arma::colvec& >::type theta_0(theta_0SEXP);
-    Rcpp::traits::input_parameter< const arma::colvec& >::type ocv_parameters(ocv_parametersSEXP);
+    Rcpp::traits::input_parameter< const arma::colvec& >::type ocv_0(ocv_0SEXP);
     Rcpp::traits::input_parameter< const double& >::type SOC_0(SOC_0SEXP);
     Rcpp::traits::input_parameter< const double& >::type C_max(C_maxSEXP);
-    Rcpp::traits::input_parameter< const double& >::type eta(etaSEXP);
     Rcpp::traits::input_parameter< const std::vector<arma::mat>& >::type P(PSEXP);
     Rcpp::traits::input_parameter< const std::vector<arma::mat>& >::type Q(QSEXP);
     Rcpp::traits::input_parameter< const std::vector<arma::mat>& >::type R(RSEXP);
@@ -50,7 +48,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const unsigned int >::type K(KSEXP);
     Rcpp::traits::input_parameter< const bool& >::type trace(traceSEXP);
     Rcpp::traits::input_parameter< const unsigned int& >::type traceLimit(traceLimitSEXP);
-    rcpp_result_gen = Rcpp::wrap(SODEFKSmoothCpp(I, V, theta_0, ocv_parameters, SOC_0, C_max, eta, P, Q, R, dt, K, trace, traceLimit));
+    rcpp_result_gen = Rcpp::wrap(SODEFKSmoothCpp(I, V, theta_0, ocv_0, SOC_0, C_max, P, Q, R, dt, K, trace, traceLimit));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -101,12 +99,34 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// ParameterUKFCpp
+Rcpp::List ParameterUKFCpp(const arma::colvec& I, const arma::colvec& V, const arma::colvec& theta_0, const arma::mat& P_0, const double& SOC_0, const double& C_max, const double& eta, const double& dt, const unsigned int K, const bool& trace, const unsigned int& traceLimit);
+RcppExport SEXP _BatteryPrognostics_ParameterUKFCpp(SEXP ISEXP, SEXP VSEXP, SEXP theta_0SEXP, SEXP P_0SEXP, SEXP SOC_0SEXP, SEXP C_maxSEXP, SEXP etaSEXP, SEXP dtSEXP, SEXP KSEXP, SEXP traceSEXP, SEXP traceLimitSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::colvec& >::type I(ISEXP);
+    Rcpp::traits::input_parameter< const arma::colvec& >::type V(VSEXP);
+    Rcpp::traits::input_parameter< const arma::colvec& >::type theta_0(theta_0SEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type P_0(P_0SEXP);
+    Rcpp::traits::input_parameter< const double& >::type SOC_0(SOC_0SEXP);
+    Rcpp::traits::input_parameter< const double& >::type C_max(C_maxSEXP);
+    Rcpp::traits::input_parameter< const double& >::type eta(etaSEXP);
+    Rcpp::traits::input_parameter< const double& >::type dt(dtSEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type K(KSEXP);
+    Rcpp::traits::input_parameter< const bool& >::type trace(traceSEXP);
+    Rcpp::traits::input_parameter< const unsigned int& >::type traceLimit(traceLimitSEXP);
+    rcpp_result_gen = Rcpp::wrap(ParameterUKFCpp(I, V, theta_0, P_0, SOC_0, C_max, eta, dt, K, trace, traceLimit));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_BatteryPrognostics_SODEFKFilterCpp", (DL_FUNC) &_BatteryPrognostics_SODEFKFilterCpp, 14},
-    {"_BatteryPrognostics_SODEFKSmoothCpp", (DL_FUNC) &_BatteryPrognostics_SODEFKSmoothCpp, 14},
+    {"_BatteryPrognostics_SODEFKFilterCpp", (DL_FUNC) &_BatteryPrognostics_SODEFKFilterCpp, 13},
+    {"_BatteryPrognostics_SODEFKSmoothCpp", (DL_FUNC) &_BatteryPrognostics_SODEFKSmoothCpp, 13},
     {"_BatteryPrognostics_SODEFKTESTCpp", (DL_FUNC) &_BatteryPrognostics_SODEFKTESTCpp, 13},
     {"_BatteryPrognostics_RCKCpp", (DL_FUNC) &_BatteryPrognostics_RCKCpp, 14},
+    {"_BatteryPrognostics_ParameterUKFCpp", (DL_FUNC) &_BatteryPrognostics_ParameterUKFCpp, 11},
     {NULL, NULL, 0}
 };
 
