@@ -4,8 +4,8 @@
 \alias{UKFParameter}
 \title{Filtering of parameters.}
 \usage{
-UKFParameter(I, V, theta_0, P_0, SOC_0, C_max, eta, dt = 1, K = 2,
-  trace = TRUE, traceLimit = 1e+06)
+UKFParameter(I, V, theta_0, P_0, SOC_0, C_max, eta = 1, sigma_0 = c(0.1, 2,
+  10), alpha = 0.2, dt = 1, K = 2, trace = TRUE, traceLimit = 1e+06)
 }
 \arguments{
 \item{I}{A current profile.}
@@ -21,6 +21,10 @@ UKFParameter(I, V, theta_0, P_0, SOC_0, C_max, eta, dt = 1, K = 2,
 \item{C_max}{The maximum value of the capacity.}
 
 \item{eta}{The capacity efficiency.}
+
+\item{sigma_0}{A vector containing the three sigma point parameters.}
+
+\item{alpha}{An OCV forgetting factor.}
 
 \item{dt}{Step-size.}
 

@@ -9,15 +9,24 @@ SODEFKSmoothCpp <- function(I, V, theta_0, ocv_0, SOC_0, C_max, P, Q, R, dt, K, 
     .Call('_BatteryPrognostics_SODEFKSmoothCpp', PACKAGE = 'BatteryPrognostics', I, V, theta_0, ocv_0, SOC_0, C_max, P, Q, R, dt, K, trace, traceLimit)
 }
 
-SODEFKTESTCpp <- function(I, V, theta_0, ocv_parameters, SOC_0, C_max, P, Q, R, dt, K, trace, traceLimit) {
-    .Call('_BatteryPrognostics_SODEFKTESTCpp', PACKAGE = 'BatteryPrognostics', I, V, theta_0, ocv_parameters, SOC_0, C_max, P, Q, R, dt, K, trace, traceLimit)
-}
-
 RCKCpp <- function(I, IC, IF, R0, Rk, Ck, Cap, OCV, SOCList, IList, dt, SOCStart, trace, traceLimit) {
     .Call('_BatteryPrognostics_RCKCpp', PACKAGE = 'BatteryPrognostics', I, IC, IF, R0, Rk, Ck, Cap, OCV, SOCList, IList, dt, SOCStart, trace, traceLimit)
 }
 
-ParameterUKFCpp <- function(I, V, theta_0, P_0, SOC_0, C_max, eta, dt, K, trace, traceLimit) {
-    .Call('_BatteryPrognostics_ParameterUKFCpp', PACKAGE = 'BatteryPrognostics', I, V, theta_0, P_0, SOC_0, C_max, eta, dt, K, trace, traceLimit)
+ParameterUKFCpp <- function(I, V, theta_0, P_0, SOC_0, C_max, eta, sigma_point_pars, alpha, dt, K, trace, traceLimit) {
+    .Call('_BatteryPrognostics_ParameterUKFCpp', PACKAGE = 'BatteryPrognostics', I, V, theta_0, P_0, SOC_0, C_max, eta, sigma_point_pars, alpha, dt, K, trace, traceLimit)
+}
+
+#' @title Corrects time
+#' @description Correction of time in the case of inconsistant time-step sizes.
+#' 
+#' @param I A vector containing the current.
+#' @param V A vector containing the voltage.
+#' @param T A vector containing the time.
+#' 
+#' @return A matrix containing the corrected time, and interpolated current and voltage.
+#' @export
+correct_time <- function(I, V, T) {
+    .Call('_BatteryPrognostics_correct_time', PACKAGE = 'BatteryPrognostics', I, V, T)
 }
 

@@ -1,12 +1,5 @@
 #include <RcppArmadillo.h>
 
-#include <boost/random/variate_generator.hpp>
-#include <boost/generator_iterator.hpp>
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/random/uniform_01.hpp>
-#include <boost/math/constants/constants.hpp>
-
-
 template <typename T> int sgn(T val) 
 {
     return(T(0) < val) - (val < T(0));
@@ -160,10 +153,6 @@ class DEKFModel {
         // 
         void Filter() 
         {
-            boost::mt19937 rng;
-            boost::random::uniform_01<> uniform_real;
-            boost::variate_generator<boost::mt19937 &, boost::random::uniform_01<> > generate_uniform_real(rng, uniform_real);
-            
             double V_hat;
             arma::colvec X_, theta_;
             arma::mat P_x_, P_theta_, L_x, L_theta, S_x, S_theta, HL_x, HL_theta;

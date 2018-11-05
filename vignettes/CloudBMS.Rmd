@@ -18,8 +18,12 @@ mround <- function(x, base) {
     base * round(x / base)
 } 
 
-MAPE <- function(x, y) {
+MeanAPE <- function(x, y) {
     mean(abs((x - y) / x))
+}
+
+MaxAPE <- function(x, y) {
+    max(abs((x - y) / x))
 }
 
 library("tidyverse")
@@ -58,7 +62,7 @@ rpt_week_1 <- bind_rows(rpt_week_1_) %>%
            Current = -Current) %>% 
     select(-CD) 
 
-#
+# Age 1
 aging_files <- list.files(data_dir_aging, full.names = T)
 aging_is_week_1 <- which(stringr::str_detect(aging_files, "week1"))
 
@@ -78,22 +82,48 @@ for (i in seq_along(aging_is_week_1)) {
 aging_week_1_1 <- bind_rows(aging_week_1_)
 
 # Fixing time scales
-difference_time <- diff(aging_week_1_1$Time)
-aging_week_1 <- list()
-aging_week_1[[1]] <- aging_week_1_1[1, ]
-for (i in 2:dim(aging_week_1_1)[1]) {
-    difference_time_i = difference_time[i - 1]
-    
-    res_i <- aging_week_1_1[i, ]
-    if (difference_time_i > 1) {
-        res_i <- aging_week_1_1[rep(i, ceiling(difference_time_i)), ]
-    }
-    
-    aging_week_1[[i]] <- res_i
+# difference_time <- diff(aging_week_1_1$Time)
+# aging_week_1 <- vector("list", dim(aging_week_1_1)[1])
+# aging_week_1[[1]] <- aging_week_1_1[1, ]
+# for (i in 2:dim(aging_week_1_1)[1]) {
+#     difference_time_i = difference_time[i - 1]
+#     
+#     res_i <- aging_week_1_1[i, ]
+#     if (difference_time_i > 1) {
+#         res_i <- aging_week_1_1[rep(i, ceiling(difference_time_i)), ]
+#     }
+#     
+#     aging_week_1[[i]] <- res_i
+# }
+# 
+# aging_week_1 <- bind_rows(aging_week_1) %>% 
+#     mutate(Time = 1:n()) %>% filter(Time > 1500)
+
+corrected_time <- correct_time(aging_week_1_1$Current, aging_week_1_1$Voltage, aging_week_1_1$Time)
+aging_week_1 <- tibble("I" = corrected_time[, 1], "V" = corrected_time[, 2], "Time" = corrected_time[, 3], 
+                       "TimeHour" = Time / 3600, "Day" = floor(TimeHour / 24)) %>% 
+    filter(Time > 1500)
+
+# Age 2
+aging_is_week_2 <- which(stringr::str_detect(aging_files, "week2"))
+
+aging_week_2_ <- vector("list", length(aging_is_week_2))
+for (i in seq_along(aging_is_week_2)) {
+    aging_week_2_i <- readr::read_delim(file = aging_files[aging_is_week_2[i]], 
+                                        delim = "\t", skip = 3)
+    aging_week_2_[[i]] <- aging_week_2_i %>% 
+        select(Time = `Test Time`, Capacity, Current, Voltage, MD) %>% 
+        mutate(Day = as.numeric(str_sub(Time, start = 3, end = 3)) + (i - 1), 
+               Time = as.POSIXct(str_sub(Time, start = 6), format = "%H:%M:%OS"), 
+               Time = as.numeric(Time - Time[1]) + Day * 24 * 3600, 
+               Current = ifelse(MD == "D", -abs(Current), ifelse(MD == "R", 0, abs(Current)))) %>% 
+        select(-MD)
 }
 
-aging_week_1 <- bind_rows(aging_week_1) %>% 
-    mutate(Time = 1:n()) %>% filter(Time > 1500)
+aging_week_2 <- bind_rows(aging_week_2_)
+corrected_time <- correct_time(aging_week_2$Current, aging_week_2$Voltage, aging_week_2$Time)
+aging_week_2 <- tibble("I" = corrected_time[, 1], "V" = corrected_time[, 2], "Time" = corrected_time[, 3],
+                       "TimeHour" = Time / 3600, "Day" = floor(TimeHour / 24))
 ```
 
 ```{r agingLookup, cache = TRUE}
@@ -106,8 +136,8 @@ extractedTables <- extractLookupTables(current, voltage, time_s, t_k = list(c(1,
 ```
 
 ```{r , cache = TRUE}
-current <- aging_week_1$Current
-voltage <- aging_week_1$Voltage
+current <- aging_week_1$I
+voltage <- aging_week_1$V
 time_s <- aging_week_1$Time
 
 trace <- FALSE
@@ -117,7 +147,8 @@ dt <- 1
 SOC_0 <- 0.3
 
 V_RCK <- RCK(current, extractedTables, dt, SOC_0, trace, traceLimit)
-MAPE(voltage, V_RCK$V_hat)
+MeanAPE(voltage, V_RCK$V_hat)
+MaxAPE(voltage, V_RCK$V_hat)
 summary(V_RCK$SOC)
 ```
 
@@ -147,7 +178,7 @@ theta_0 <- c(log(0.00523),
              1.0, 0.0)
 
 vsb <- microbenchmark(
-    V_simulated <- SODEFKFilter(I = current, V = voltage, theta_0 = theta_0, 
+    V_simulated_1 <- SODEFKFilter(I = current, V = voltage, theta_0 = theta_0, 
                                 ocv_0 = ocv_0, SOC_0 = SOC_0,
                                 C_max = C_max, dt = dt, K = K, 
                                 trace = trace, traceLimit = traceLimit), 
@@ -155,7 +186,8 @@ vsb <- microbenchmark(
 )
 
 summary(vsb)$median
-MAPE(voltage, V_simulated$V_hat)
+MeanAPE(voltage, V_simulated_1$V_hat)
+MaxAPE(voltage, V_simulated_1$V_hat)
 summary(V_simulated$SOC)
 ```
 
@@ -172,7 +204,7 @@ ggplot(compare_tibble %>% filter(Time > 45000, Time < 47000),
 ```
 
 ```{r parameter_figs}
-parameterTibble <- aging_week_1 %>% 
+parameter_week_1 <- aging_week_1 %>% 
     mutate(R0 = V_simulated$ThetaTrace[1, ], 
            R1 = V_simulated$ThetaTrace[2, ], 
            Tau1 = V_simulated$ThetaTrace[3, ], 
@@ -186,20 +218,21 @@ parameterTibble <- aging_week_1 %>%
     mutate(TimeDay = 1:n())
 
 pdf("~/AAU/PostDoc/Battery/BatteryPrognosticsR/TheveninModelR/Figures/DynamicAgedCellWeek1.pdf", width = 25, height = 7)
-ggplot(parameterTibble %>% filter(Time > 2500), aes(x = TimeDay / 3600, y = exp(R0))) + 
+ggplot(parameter_week_1 %>% filter(Time > 2500), aes(x = TimeDay / 3600, y = exp(R0))) + 
     geom_line() + facet_wrap(~(Day + 1), nrow = 1) + theme_bw(base_size = 25) +
     xlab("Hour of day") + ylab(bquote(R[0])) + 
     scale_x_continuous(breaks = c(1, 5, 10, 15, 20, 24))
+
+ggplot(parameter_week_1 %>% filter(Time > 2500), aes(x = TimeDay / 3600, y = Eta)) + 
+    geom_line() + facet_wrap(~(Day + 1), nrow = 1) + theme_bw(base_size = 25) +
+    xlab("Time of day") + ylab(bquote(eta)) +  
+    scale_x_continuous(breaks = c(1, 5, 10, 15, 20, 24))
+
+ggplot(parameter_week_1 %>% filter(Time > 2500, Alpha > -0.1), aes(x = TimeDay / 3600, y = Alpha)) + 
+    geom_line() + facet_wrap(~(Day + 1), nrow = 1) + theme_bw(base_size = 25) +
+    xlab("Time of day") + ylab(bquote(alpha)) + 
+    scale_x_continuous(breaks = c(1, 5, 10, 15, 20, 24))
 dev.off()
-
-ggplot(parameterTibble %>% filter(Time > 2500), aes(x = TimeDay / 3600, y = Eta)) + 
-    geom_line() + facet_wrap(~(Day + 1)) + theme_bw(base_size = 25) +
-    xlab("Time of day") + ylab(bquote(eta))
-
-ggplot(parameterTibble %>% filter(Time > 2500, Alpha > -0.1), aes(x = TimeDay / 3600, y = Alpha)) + 
-    geom_line() + facet_wrap(~(Day + 1)) + theme_bw(base_size = 25) +
-    xlab("Time of day") + ylab(bquote(alpha))
-
 ```
 
 
@@ -212,39 +245,45 @@ dt <- 1
 SOC_0 <- 0.0
 C_max <- 2.56
 
-ocv_0 <- c(3.11602927, 0.20411943, -0.12431090, 0.02695484)
-theta_0 <- c(log(0.00523), log(0.00490), 2.527,
-             log(0.0117), 36.748,  1.0, 0.0)
+# ocv_0 <- c(3.11602927, 0.20411943, -0.12431090, 0.02695484)
+# theta_0 <- c(log(0.00523), log(0.00490), 2.527,
+#              log(0.0117), 36.748,  1.0, 0.0)
 
-par_initial <- c(theta_0, ocv_0, 0.0, 2.5)
-lb <- c(-Inf, -Inf, 0, -Inf, 0, 0, -Inf, 
-        -Inf, -Inf, -Inf, -Inf, 0, 0)
-ub <- c(Inf, Inf, Inf, Inf, Inf, 1.0, Inf, 
-        Inf, Inf, Inf, Inf, Inf, Inf)
+par_initial <- c(0.0, 2.5)
+lb <- c(0, 2) # -Inf, -Inf, 0, -Inf, 0, 0, -Inf, -Inf, -Inf, -Inf, -Inf, 
+ub <- c(1.0, 3) # Inf, Inf, Inf, Inf, Inf, 1.0, Inf, Inf, Inf, Inf, Inf, 
 
-DEFK_optim <- function(par, current, voltage, dt, K) {
-    theta_ = par[1:length(theta_0)]
-    ocv_ = par[(length(theta_0) + 1):(length(theta_0) + length(ocv_0))]
-    SOC_ = par[(length(theta_0) + length(ocv_0) + 1)]
-    C_max_ = par[(length(theta_0) + length(ocv_0) + 2)]
+DEFK_optim <- function(par, current, voltage, dt, K, ocv_0, theta_0) {
+    # theta_ = par[1:length(theta_0)]
+    # ocv_ = par[(length(theta_0) + 1):(length(theta_0) + length(ocv_0))]
+    SOC_ = par[1] # (length(theta_0) + length(ocv_0) + 1)]
+    C_max_ = par[2] # (length(theta_0) + length(ocv_0) + 2)]
     
-    V_simulated <- SODEFK(current, voltage, theta_, ocv_, SOC_,
-                          C_max_, dt, K, FALSE, 1)
+    V_simulated <- SODEFKFilter(I = current, V = voltage, theta_0 = theta_0, ocv_0 = ocv_0, 
+                                SOC_0 = SOC_, C_max = C_max_, eta = 1, dt = dt, K = K, 
+                                trace = FALSE, traceLimit = 1)
     
-    return(mean((V_simulated$V - V_simulated$V_hat)^2))
+    res = max(abs((V_simulated$V - V_simulated$V_hat) / V_simulated$V))
+    if (is.infinite(res) || is.nan(res))
+        res = 1e8
+    
+    return(res)
 }
 
 opt_par <- optim(par = par_initial, fn = DEFK_optim,
                  current = current, voltage = voltage, dt = dt, K = K, 
-                 method = "L-BFGS-B", lower = lb, upper = ub)
+                 theta_0 = theta_0, ocv_0 = ocv_0,
+                 method = "L-BFGS-B", lower = lb, upper = ub) #, 
+                 # control = list(trace = 1, REPORT = 1))
 
-theta_1 <- opt_par$par[1:length(theta_0)]
-ocv_1 <- opt_par$par[(length(theta_0) + 1):(length(theta_0) + length(ocv_0))]
-SOC_1 <- opt_par$par[(length(theta_0) + length(ocv_0) + 1)]
-C_max_1 <- opt_par$par[(length(theta_0) + length(ocv_0) + 2)]
+# theta_1 <- opt_par$par[1:length(theta_0)]
+# ocv_1 <- opt_par$par[(length(theta_0) + 1):(length(theta_0) + length(ocv_0))]
+SOC_1 <- opt_par$par[1] # (length(theta_0) + length(ocv_0) + 1)]
+C_max_1 <- opt_par$par[2] # (length(theta_0) + length(ocv_0) + 2)]
 
-V_simulated <- SODEFK(current, voltage, theta_1, ocv_1, SOC_1,
-                          C_max_1, dt, K, FALSE, 1)
+V_simulated <- SODEFKFilter(I = current, V = voltage, theta_0 = theta_0, ocv_0 = ocv_0,
+                            SOC_0 = SOC_1, C_max = C_max_1, eta = 1, dt = dt, K = K,
+                            trace = FALSE, traceLimit = 1)
 
 compare_tibble <- enframe(V_simulated[1:2], name = "Type", value = "Voltage") %>% 
     unnest() %>% 
@@ -258,6 +297,83 @@ ggplot(compare_tibble %>% filter(Time < 60000, Time > 59000), aes(x = Time, y = 
 MAPE(voltage, V_simulated$V_hat)
 summary(V_simulated$SOC)
 ```
+
+
+```{r ageingtestweek2, cache = T}
+current = aging_week_2$I
+voltage = aging_week_2$V
+
+K <- 2
+eta <- 1
+C_max <- mean(extractedTables$Tables$Cap)
+
+ocv_0 <- c(3.11602927, 0.20411943, -0.12431090, 0.02695484, 0.0)
+theta_0 <- c(V_simulated_1$Theta) # log(0.00523), log(0.00490), 2.527, log(0.0117), 36.748, 1.0, 0.0)
+
+vsb <- microbenchmark(
+    V_simulated_2 <- SODEFKFilter(I = current, V = voltage, theta_0 = theta_0,
+                                  ocv_0 = ocv_0, SOC_0 = SOC_0,
+                                  C_max = C_max, dt = dt, K = K,
+                                  trace = trace, traceLimit = traceLimit), 
+    times = 1
+)
+
+summary(vsb)$median
+
+compare_tibble <- enframe(V_simulated_2[1:2], name = "Type", value = "Voltage") %>% 
+    unnest() %>% 
+    mutate(Time = rep(1:(n() / 2), times = 2), 
+           Type = ifelse(Type == "V", "Measured voltage", "Simulated voltage"))
+
+ggplot(compare_tibble %>% filter(Time < 60000, Time > 59000), aes(x = Time, y = Voltage, colour = Type)) + 
+    geom_line() + 
+    theme_bw(base_size = 15) + theme(legend.position = "top")
+
+MeanAPE(voltage, V_simulated_2$V_hat)
+MaxAPE(voltage, V_simulated_2$V_hat)
+summary(V_simulated_2$SOC)
+```
+
+```{r}
+parameter_week_2 <- aging_week_2 %>% 
+    mutate(R0 = V_simulated_2$ThetaTrace[1, ], 
+           R1 = V_simulated_2$ThetaTrace[2, ], 
+           Tau1 = V_simulated_2$ThetaTrace[3, ], 
+           R2 = V_simulated_2$ThetaTrace[4, ], 
+           Tau2 = V_simulated_2$ThetaTrace[5, ], 
+           Eta = V_simulated_2$ThetaTrace[6, ], 
+           Alpha = V_simulated_2$ThetaTrace[7, ], 
+           SOC = V_simulated_2$SOC, 
+           SOCRound = mround(SOC, 5)) %>% 
+    group_by(Day) %>% 
+    mutate(TimeDay = 1:n())
+
+pdf("~/AAU/PostDoc/Battery/BatteryPrognosticsR/TheveninModelR/Figures/DynamicAgedCellWeek2.pdf", width = 25, height = 7)
+ggplot(parameter_week_2 %>% filter(Time > 2500), aes(x = TimeDay / 3600, y = exp(R0))) + 
+    geom_line() + facet_wrap(~(Day + 1), nrow = 1) + theme_bw(base_size = 25) +
+    xlab("Hour of day") + ylab(bquote(R[0])) + 
+    scale_x_continuous(breaks = c(1, 5, 10, 15, 20, 24))
+
+ggplot(parameter_week_2 %>% filter(Time > 2500), aes(x = TimeDay / 3600, y = Eta)) + 
+    geom_line() + facet_wrap(~(Day + 1), nrow = 1) + theme_bw(base_size = 25) +
+    xlab("Time of day") + ylab(bquote(eta)) + 
+    scale_x_continuous(breaks = c(1, 5, 10, 15, 20, 24))
+
+ggplot(parameter_week_2 %>% filter(Time > 2500, Alpha > -0.1), aes(x = TimeDay / 3600, y = Alpha)) + 
+    geom_line() + facet_wrap(~(Day + 1), nrow = 1) + theme_bw(base_size = 25) +
+    xlab("Time of day") + ylab(bquote(alpha)) + 
+    scale_x_continuous(breaks = c(1, 5, 10, 15, 20, 24))
+dev.off()
+
+pdf("~/AAU/PostDoc/Battery/BatteryPrognosticsR/TheveninModelR/Figures/DynamicAgedCellWeek2_2.pdf", width = 25, height = 7)
+ggplot(parameter_week_2 %>% filter(Time > 2500), aes(x = SOC, y = exp(R0)), colour = as.factor(Day + 1)) + 
+    geom_line() + #facet_wrap(~(Day + 1), nrow = 1) + 
+    theme_bw(base_size = 25) +
+    xlab("Hour of day") + ylab(bquote(R[0])) + 
+    scale_x_continuous(breaks = c(1, 5, 10, 15, 20, 24))
+dev.off()
+```
+
 
 ```{r rptweek1test, cache = TRUE}
 rpt_start <- 14934
@@ -278,3 +394,4 @@ ggplot(compare_tibble, aes(x = Time, y = Voltage, colour = Type)) +
     geom_line() + 
     theme_bw(base_size = 15) + theme(legend.position = "top")
 ```
+

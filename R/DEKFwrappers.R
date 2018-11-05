@@ -108,6 +108,8 @@ SODEFKSmooth <- function(I, V, theta_0, ocv_0, SOC_0, C_max, eta,
 #' @param SOC_0 The initial value of the SOC.
 #' @param C_max The maximum value of the capacity.
 #' @param eta The capacity efficiency.
+#' @param sigma_0 A vector containing the three sigma point parameters.
+#' @param alpha An OCV forgetting factor.
 #' @param dt Step-size.
 #' @param K Number of RC branches in the EEC.
 #' @param trace TRUE/FALSE: Show trace?
@@ -115,12 +117,12 @@ SODEFKSmooth <- function(I, V, theta_0, ocv_0, SOC_0, C_max, eta,
 #' 
 #' @return A list containing the voltage, the filtered voltage, the SOC, the polarisation voltage, and the state variance.
 #' @export
-UKFParameter <- function(I, V, theta_0, P_0, SOC_0, C_max, eta,
-                         dt = 1, K = 2, trace = TRUE, traceLimit = 1e6) {
+UKFParameter <- function(I, V, theta_0, P_0, SOC_0, C_max, eta = 1.0,
+                         sigma_0 = c(0.1, 2, 10), alpha = 0.2, dt = 1, K = 2, trace = TRUE, traceLimit = 1e6) {
     if (is.null(P_0)) {
-        P_0 <- diag(10, length(theta_0))
+        P_0 <- diag(c(0.1, 0.1, rep(1, K), rep(100, K), rep(1, K), 1), length(theta_0))
     }
     
-    res <- ParameterUKFCpp(I, V, theta_0, P_0, SOC_0, C_max, eta, dt, K, trace, traceLimit)
+    res <- ParameterUKFCpp(I, V, theta_0, P_0, SOC_0, C_max, eta, sigma_0, alpha, dt, K, trace, traceLimit)
     return(res)
 }
