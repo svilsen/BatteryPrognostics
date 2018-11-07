@@ -10,11 +10,12 @@ Description: State-space model used for filtering and prediction of the state-of
 License: MIT
 Imports: 
     Rcpp (>= 0.12.17), 
-    Rsolnp
+    dplyr,
+    ggplot2,
+    ggExtra
 LinkingTo: 
     Rcpp, 
-    RcppArmadillo, 
-    BH
+    RcppArmadillo
 RoxygenNote: 6.0.1
 Suggests: 
     knitr,
