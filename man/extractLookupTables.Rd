@@ -4,9 +4,9 @@
 \alias{extractLookupTables}
 \title{Extract look-up tables.}
 \usage{
-extractLookupTables(current, voltage, time_s, t_k, h = 0.65,
-  SOCValues = seq(5, 95, 5), IValues = c(-10, -7.5, -5, -2.5, -1.25, -0.25,
-  0.25, 1.25, 2.5, 5, 7.5, 10), capacityScalingParameters = NULL)
+extractLookupTables(current, voltage, time_s, t_k, SOCValues = seq(5, 95, 5),
+  IValues = c(-10, -7.5, -5, -2.5, -1.25, -0.25, 0.25, 1.25, 2.5, 5, 7.5, 10),
+  h = 1)
 }
 \arguments{
 \item{current}{A charge/discharge cycling current profile. Note: assumes that negative current implies discharging of the battery.}
@@ -17,13 +17,11 @@ extractLookupTables(current, voltage, time_s, t_k, h = 0.65,
 
 \item{t_k}{The time intervals for each of the RC-units.}
 
-\item{h}{R0 reduction fraction. NOTE: THIS SHOULD NOT BE NECESSARY AND, THEREFORE, SET TO 1.}
-
 \item{SOCValues}{A vector of possible 'SOC' values.}
 
 \item{IValues}{A vector of possible 'Current' values.}
 
-\item{capacityScalingParameters}{A list of parameters used for scaling the capacity. NOTE: THIS SHOULD NOT BE NECESSARY AND SHOULD LEFT AS DEFAULT ('NULL').}
+\item{h}{R0 reduction fraction. NOTE: THIS SHOULD NOT BE NECESSARY AND, THEREFORE, SET TO 1.}
 }
 \value{
 A list of look-up table matrices.

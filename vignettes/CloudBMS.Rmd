@@ -49,7 +49,7 @@ In the second stage, we will try to model and estimate the parameters of the $n$
 
 
 ```{r load_week_1, message = F, warning = F, echo = F, cache = T}
-#
+# RPT 1
 rpt_files <- list.files(data_dir_rpt, full.names = T)
 rpt_is_week_1 <- stringr::str_detect(rpt_files, "week1.csv")
 rpt_week_1_ <- structure(readr::read_delim(rpt_files[rpt_is_week_1], "\t"), 
@@ -80,25 +80,6 @@ for (i in seq_along(aging_is_week_1)) {
 }
 
 aging_week_1_1 <- bind_rows(aging_week_1_)
-
-# Fixing time scales
-# difference_time <- diff(aging_week_1_1$Time)
-# aging_week_1 <- vector("list", dim(aging_week_1_1)[1])
-# aging_week_1[[1]] <- aging_week_1_1[1, ]
-# for (i in 2:dim(aging_week_1_1)[1]) {
-#     difference_time_i = difference_time[i - 1]
-#     
-#     res_i <- aging_week_1_1[i, ]
-#     if (difference_time_i > 1) {
-#         res_i <- aging_week_1_1[rep(i, ceiling(difference_time_i)), ]
-#     }
-#     
-#     aging_week_1[[i]] <- res_i
-# }
-# 
-# aging_week_1 <- bind_rows(aging_week_1) %>% 
-#     mutate(Time = 1:n()) %>% filter(Time > 1500)
-
 corrected_time <- correct_time(aging_week_1_1$Current, aging_week_1_1$Voltage, aging_week_1_1$Time)
 aging_week_1 <- tibble("I" = corrected_time[, 1], "V" = corrected_time[, 2], "Time" = corrected_time[, 3], 
                        "TimeHour" = Time / 3600, "Day" = floor(TimeHour / 24)) %>% 
@@ -106,7 +87,6 @@ aging_week_1 <- tibble("I" = corrected_time[, 1], "V" = corrected_time[, 2], "Ti
 
 # Age 2
 aging_is_week_2 <- which(stringr::str_detect(aging_files, "week2"))
-
 aging_week_2_ <- vector("list", length(aging_is_week_2))
 for (i in seq_along(aging_is_week_2)) {
     aging_week_2_i <- readr::read_delim(file = aging_files[aging_is_week_2[i]], 
@@ -372,6 +352,10 @@ ggplot(parameter_week_2 %>% filter(Time > 2500), aes(x = SOC, y = exp(R0)), colo
     xlab("Hour of day") + ylab(bquote(R[0])) + 
     scale_x_continuous(breaks = c(1, 5, 10, 15, 20, 24))
 dev.off()
+```
+
+```{r }
+
 ```
 
 

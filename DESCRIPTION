@@ -12,12 +12,17 @@ Imports:
     Rcpp (>= 0.12.17), 
     dplyr,
     ggplot2,
-    ggExtra
+    Rsolnp,
+    doParallel,
+    foreach,
+    pracma
 LinkingTo: 
     Rcpp, 
     RcppArmadillo
 RoxygenNote: 6.0.1
 Suggests: 
     knitr,
-    rmarkdown
+    rmarkdown,
+    ggExtra, 
+    gridExtra
 VignetteBuilder: knitr

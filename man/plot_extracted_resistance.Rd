@@ -5,8 +5,9 @@
 \title{2d-density plot of the extracted resistance}
 \usage{
 plot_extracted_resistance(ext_res_tibble, restrict_dim_y = NULL,
-  include_marginals = FALSE, dims = c("SOC", "R"), facet_variable = NULL,
-  plot_type = "hex", n_bins = NULL)
+  include_marginals = TRUE, include_current = TRUE, dims = c("SOC", "R"),
+  dim_labels = c(expression("SOC [\%]"), expression(paste("R", " [", Omega,
+  "]"))), facet_variable = NULL, plot_type = "hex", n_bins = NULL)
 }
 \arguments{
 \item{ext_res_tibble}{\link{tibble} made with the \link{extract_resistance}-function.}
@@ -15,7 +16,11 @@ plot_extracted_resistance(ext_res_tibble, restrict_dim_y = NULL,
 
 \item{include_marginals}{TRUE/FALSE: Should marginal plots be included? Note: requires 'ggExtra'.}
 
+\item{include_current}{TRUE/FALSE: Include a histogram of the current? Note requires 'gridExtra'.}
+
 \item{dims}{The number of dimensions to be plotted.}
+
+\item{dim_labels}{Labels for the 'x' and 'y' dimensions.}
 
 \item{facet_variable}{String passed to 'facet_wrap'.}
 

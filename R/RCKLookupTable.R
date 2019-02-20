@@ -9,17 +9,23 @@
 #' @param h R0 reduction fraction. NOTE: THIS SHOULD NOT BE NECESSARY AND, THEREFORE, SET TO 1.
 #' @param SOCValues A vector of possible 'SOC' values.
 #' @param IValues A vector of possible 'Current' values.
-#' @param capacityScalingParameters A list of parameters used for scaling the capacity. NOTE: THIS SHOULD NOT BE NECESSARY AND SHOULD LEFT AS DEFAULT ('NULL'). 
 #' 
 #' @return A list of look-up table matrices.
 #' @export
 extractLookupTables <- function(current, voltage, time_s, t_k, 
-                                h = 0.65, SOCValues = seq(5, 95, 5), 
-                                IValues = c(-10, -7.5, -5, -2.5, -1.25, -0.25, 0.25, 1.25, 2.5, 5, 7.5, 10),
-                                capacityScalingParameters = NULL) {
+                                SOCValues = seq(5, 95, 5), 
+                                IValues = c(-10, -7.5, -5, -2.5, -1.25, -0.25, 0.25, 1.25, 2.5, 5, 7.5, 10), 
+                                h = 1) {
     v_tau <- function(t, V, tau) {
         return(V * exp(-t / tau))
     }
+    
+    if (is.null(h) || (h < 0)) {
+        h = 0
+    }
+    else if (h > 1) {
+        h = 1
+    } 
     
     RawTibble = tibble(V = c(voltage), I = c(current), Time_s = c(time_s)) %>% 
         mutate(CD = ifelse(I == 0, 0, ifelse(I < 0, -1, 1))) 
@@ -36,10 +42,6 @@ extractLookupTables <- function(current, voltage, time_s, t_k,
     R0 = matrix(0, nrow = length(SOCValues), ncol = length(IValues))
     
     K = length(t_k)
-    if (is.null(capacityScalingParameters)) {
-        capacityScalingParameters = rep(list(rep(1, length(SOCValues))), times = K)
-    }
-    
     Rk = rep(list(matrix(0, nrow = length(SOCValues), ncol = length(IValues))), times = K)
     Ck = rep(list(matrix(0, nrow = length(SOCValues), ncol = length(IValues))), times = K)
     
@@ -154,8 +156,9 @@ extractLookupTables <- function(current, voltage, time_s, t_k,
     # lmCap <- lm(CapLimited ~ IListLimited + I(IListLimited^2))
     
     # Cap = matrix(predict(lmCap, newdata = data.frame(IListLimited = IValues)), nrow = 1)
-    Cap = c(2.55493, 2.55554, 2.56072, 2.57195, 2.57751, 2.57878, 2.57275, 2.58152, 2.57692, 2.57347, 2.56234, 2.55717)
-    res <- list(Tables = list(R0 = R0, Rk = Rk, Ck = Ck, Cap = Cap, OCV = OCV), Values = list(SOC = SOCValues, I = IValues))
+    # Cap = c(2.55493, 2.55554, 2.56072, 2.57195, 2.57751, 2.57878, 2.57275, 2.58152, 2.57692, 2.57347, 2.56234, 2.55717)
+    res <- list(Tables = list(R0 = R0, Rk = Rk, Ck = Ck, OCV = OCV), #Cap = Cap), 
+                Values = list(SOC = SOCValues, I = IValues))
     return(res)
 }
 

@@ -12,7 +12,7 @@ extract_resistance(I, V, T_s = NULL, epsilon = 0.001, Q_max = 2.56,
 
 \item{V}{Vector containing the voltage.}
 
-\item{T_s}{Vector containing the time step sizes (in seconds). If 'NULL' it is set as '1:length(I)'.}
+\item{T_s}{Vector containing the time step sizes (in seconds). If 'NULL' it is set as 'seq_along(I)'.}
 
 \item{epsilon}{The lower limit used for identifying change in current. Default is '1e-3'.}
 

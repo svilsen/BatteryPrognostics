@@ -13,8 +13,16 @@ RCKCpp <- function(I, IC, IF, R0, Rk, Ck, Cap, OCV, SOCList, IList, dt, SOCStart
     .Call('_BatteryPrognostics_RCKCpp', PACKAGE = 'BatteryPrognostics', I, IC, IF, R0, Rk, Ck, Cap, OCV, SOCList, IList, dt, SOCStart, trace, traceLimit)
 }
 
-ParameterUKFCpp <- function(I, V, theta_0, P_0, SOC_0, C_max, eta, sigma_point_pars, alpha, dt, K, trace, traceLimit) {
-    .Call('_BatteryPrognostics_ParameterUKFCpp', PACKAGE = 'BatteryPrognostics', I, V, theta_0, P_0, SOC_0, C_max, eta, sigma_point_pars, alpha, dt, K, trace, traceLimit)
+ParameterEKFCpp <- function(I, V, theta_0, SOC_0, Q_max, P, Q, R, dt, K, W, trace, traceLimit) {
+    .Call('_BatteryPrognostics_ParameterEKFCpp', PACKAGE = 'BatteryPrognostics', I, V, theta_0, SOC_0, Q_max, P, Q, R, dt, K, W, trace, traceLimit)
+}
+
+ParameterUKFCpp <- function(I, V, theta_0, P_0, SOC_0, C_max, eta, sigma_point_pars, lag, dt, K, R_0, Q_0, trace, traceLimit) {
+    .Call('_BatteryPrognostics_ParameterUKFCpp', PACKAGE = 'BatteryPrognostics', I, V, theta_0, P_0, SOC_0, C_max, eta, sigma_point_pars, lag, dt, K, R_0, Q_0, trace, traceLimit)
+}
+
+ParameterUKSCpp <- function(I, V, theta_0, P_0, SOC_0, C_max, eta, sigma_point_pars, lag, M, dt, K, R_0, Q_0, trace, traceLimit) {
+    .Call('_BatteryPrognostics_ParameterUKSCpp', PACKAGE = 'BatteryPrognostics', I, V, theta_0, P_0, SOC_0, C_max, eta, sigma_point_pars, lag, M, dt, K, R_0, Q_0, trace, traceLimit)
 }
 
 #' @title Corrects time
@@ -28,5 +36,13 @@ ParameterUKFCpp <- function(I, V, theta_0, P_0, SOC_0, C_max, eta, sigma_point_p
 #' @export
 correct_time <- function(I, V, T) {
     .Call('_BatteryPrognostics_correct_time', PACKAGE = 'BatteryPrognostics', I, V, T)
+}
+
+compare_windows_cpp <- function(I1, I2, SOC1, SOC2, W, R, epsilon, delta, trace, trace_limit) {
+    .Call('_BatteryPrognostics_compare_windows_cpp', PACKAGE = 'BatteryPrognostics', I1, I2, SOC1, SOC2, W, R, epsilon, delta, trace, trace_limit)
+}
+
+extract_resistance_cpp <- function(I, V, T_s, epsilon, Q_max, eta, SOC_0) {
+    .Call('_BatteryPrognostics_extract_resistance_cpp', PACKAGE = 'BatteryPrognostics', I, V, T_s, epsilon, Q_max, eta, SOC_0)
 }
 
