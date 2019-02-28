@@ -164,22 +164,49 @@ BEGIN_RCPP
 END_RCPP
 }
 // compare_windows_cpp
-Rcpp::List compare_windows_cpp(const std::vector<double>& I1, const std::vector<double>& I2, const std::vector<double>& SOC1, const std::vector<double>& SOC2, const unsigned int& W, const unsigned int& R, const std::vector<double>& epsilon, const double& delta, const bool& trace, const unsigned int& trace_limit);
-RcppExport SEXP _BatteryPrognostics_compare_windows_cpp(SEXP I1SEXP, SEXP I2SEXP, SEXP SOC1SEXP, SEXP SOC2SEXP, SEXP WSEXP, SEXP RSEXP, SEXP epsilonSEXP, SEXP deltaSEXP, SEXP traceSEXP, SEXP trace_limitSEXP) {
+Rcpp::List compare_windows_cpp(const std::vector<double>& I1, const std::vector<double>& I2, const std::vector<double>& V1, const std::vector<double>& V2, const unsigned int& W, const unsigned int& R, const std::vector<double>& epsilon, const double& delta, const bool& trace, const unsigned int& trace_limit);
+RcppExport SEXP _BatteryPrognostics_compare_windows_cpp(SEXP I1SEXP, SEXP I2SEXP, SEXP V1SEXP, SEXP V2SEXP, SEXP WSEXP, SEXP RSEXP, SEXP epsilonSEXP, SEXP deltaSEXP, SEXP traceSEXP, SEXP trace_limitSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const std::vector<double>& >::type I1(I1SEXP);
     Rcpp::traits::input_parameter< const std::vector<double>& >::type I2(I2SEXP);
-    Rcpp::traits::input_parameter< const std::vector<double>& >::type SOC1(SOC1SEXP);
-    Rcpp::traits::input_parameter< const std::vector<double>& >::type SOC2(SOC2SEXP);
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type V1(V1SEXP);
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type V2(V2SEXP);
     Rcpp::traits::input_parameter< const unsigned int& >::type W(WSEXP);
     Rcpp::traits::input_parameter< const unsigned int& >::type R(RSEXP);
     Rcpp::traits::input_parameter< const std::vector<double>& >::type epsilon(epsilonSEXP);
     Rcpp::traits::input_parameter< const double& >::type delta(deltaSEXP);
     Rcpp::traits::input_parameter< const bool& >::type trace(traceSEXP);
     Rcpp::traits::input_parameter< const unsigned int& >::type trace_limit(trace_limitSEXP);
-    rcpp_result_gen = Rcpp::wrap(compare_windows_cpp(I1, I2, SOC1, SOC2, W, R, epsilon, delta, trace, trace_limit));
+    rcpp_result_gen = Rcpp::wrap(compare_windows_cpp(I1, I2, V1, V2, W, R, epsilon, delta, trace, trace_limit));
+    return rcpp_result_gen;
+END_RCPP
+}
+// compare_windows_ga_cpp
+Rcpp::List compare_windows_ga_cpp(const std::vector<double>& I1, const std::vector<double>& I2, const std::vector<double>& V1, const std::vector<double>& V2, const std::vector<double>& Temp1, const std::vector<double>& Temp2, const unsigned int& mutation_window, const double& restrict_temperature, const double& restrict_voltage, const unsigned int& Wmin, const unsigned int& Wmax, const unsigned int& Imin, const unsigned int& N_evolution, const unsigned int& N_keep, const bool& trace, const unsigned int& trace_limit, const unsigned int& seed);
+RcppExport SEXP _BatteryPrognostics_compare_windows_ga_cpp(SEXP I1SEXP, SEXP I2SEXP, SEXP V1SEXP, SEXP V2SEXP, SEXP Temp1SEXP, SEXP Temp2SEXP, SEXP mutation_windowSEXP, SEXP restrict_temperatureSEXP, SEXP restrict_voltageSEXP, SEXP WminSEXP, SEXP WmaxSEXP, SEXP IminSEXP, SEXP N_evolutionSEXP, SEXP N_keepSEXP, SEXP traceSEXP, SEXP trace_limitSEXP, SEXP seedSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type I1(I1SEXP);
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type I2(I2SEXP);
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type V1(V1SEXP);
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type V2(V2SEXP);
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type Temp1(Temp1SEXP);
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type Temp2(Temp2SEXP);
+    Rcpp::traits::input_parameter< const unsigned int& >::type mutation_window(mutation_windowSEXP);
+    Rcpp::traits::input_parameter< const double& >::type restrict_temperature(restrict_temperatureSEXP);
+    Rcpp::traits::input_parameter< const double& >::type restrict_voltage(restrict_voltageSEXP);
+    Rcpp::traits::input_parameter< const unsigned int& >::type Wmin(WminSEXP);
+    Rcpp::traits::input_parameter< const unsigned int& >::type Wmax(WmaxSEXP);
+    Rcpp::traits::input_parameter< const unsigned int& >::type Imin(IminSEXP);
+    Rcpp::traits::input_parameter< const unsigned int& >::type N_evolution(N_evolutionSEXP);
+    Rcpp::traits::input_parameter< const unsigned int& >::type N_keep(N_keepSEXP);
+    Rcpp::traits::input_parameter< const bool& >::type trace(traceSEXP);
+    Rcpp::traits::input_parameter< const unsigned int& >::type trace_limit(trace_limitSEXP);
+    Rcpp::traits::input_parameter< const unsigned int& >::type seed(seedSEXP);
+    rcpp_result_gen = Rcpp::wrap(compare_windows_ga_cpp(I1, I2, V1, V2, Temp1, Temp2, mutation_window, restrict_temperature, restrict_voltage, Wmin, Wmax, Imin, N_evolution, N_keep, trace, trace_limit, seed));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -210,6 +237,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_BatteryPrognostics_ParameterUKSCpp", (DL_FUNC) &_BatteryPrognostics_ParameterUKSCpp, 16},
     {"_BatteryPrognostics_correct_time", (DL_FUNC) &_BatteryPrognostics_correct_time, 3},
     {"_BatteryPrognostics_compare_windows_cpp", (DL_FUNC) &_BatteryPrognostics_compare_windows_cpp, 10},
+    {"_BatteryPrognostics_compare_windows_ga_cpp", (DL_FUNC) &_BatteryPrognostics_compare_windows_ga_cpp, 17},
     {"_BatteryPrognostics_extract_resistance_cpp", (DL_FUNC) &_BatteryPrognostics_extract_resistance_cpp, 7},
     {NULL, NULL, 0}
 };

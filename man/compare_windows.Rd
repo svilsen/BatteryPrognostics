@@ -4,7 +4,7 @@
 \alias{compare_windows}
 \title{Compare windows}
 \usage{
-compare_windows(I1, I2, SOC1, SOC2, W, R, epsilon, delta, trace = TRUE,
+compare_windows(I1, I2, V1, V2, W, R, epsilon, delta, trace = TRUE,
   trace_limit = 10000, return_tibble = TRUE)
 }
 \arguments{
@@ -12,17 +12,21 @@ compare_windows(I1, I2, SOC1, SOC2, W, R, epsilon, delta, trace = TRUE,
 
 \item{I2}{Numeric vector of length 'T2'.}
 
-\item{SOC1}{Numeric vector of length 'T1'.}
+\item{V1}{Numeric vector of length 'T1'.}
 
-\item{SOC2}{Numeric vector of length 'T2'.}
+\item{V2}{Numeric vector of length 'T2'.}
 
-\item{W}{Scalar -- the window size.}
+\item{W}{Scalar: the window size.}
 
-\item{R}{Scalar -- the maximum allowed number of place the two windows exceed epsilon.}
+\item{R}{Scalar: the maximum allowed number of place the two windows exceed epsilon.}
 
 \item{epsilon}{Tolerance used when comparing windows of 'I1' and 'I2'.}
 
 \item{delta}{Tolerance used when comparing the initial index of the window in 'SOC1' and 'SOC2'.}
+
+\item{trace}{TRUE/FLASE: Show trace?}
+
+\item{trace_limit}{Scalar: Limit the trace shown to 'trace_limit'.}
 
 \item{return_tibble}{TRUE/FALSE: Should a tibble be returned?}
 }

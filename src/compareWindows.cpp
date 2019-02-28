@@ -1,12 +1,15 @@
 #include <Rcpp.h>
+
+#include <boost/random/mersenne_twister.hpp>
+#include <boost/random/uniform_int_distribution.hpp>
+
 #include "compareWindows.hpp"
-#include "compareWindowsGA.hpp"
 
 //[[Rcpp::export()]]
 Rcpp::List compare_windows_cpp(const std::vector<double> & I1, 
                                const std::vector<double> & I2, 
-                               const std::vector<double> & SOC1,
-                               const std::vector<double> & SOC2,
+                               const std::vector<double> & V1,
+                               const std::vector<double> & V2,
                                const unsigned int & W,
                                const unsigned int & R,
                                const std::vector<double> & epsilon,
@@ -14,7 +17,7 @@ Rcpp::List compare_windows_cpp(const std::vector<double> & I1,
                                const bool & trace, 
                                const unsigned int & trace_limit) 
 {
-    CompareWindows CW(I1, I2, SOC1, SOC2, W, R, epsilon, delta, trace, trace_limit); 
+    CompareWindows CW(I1, I2, V1, V2, W, R, epsilon, delta, trace, trace_limit); 
     
     CW.Reduce();
     CW.Compare();

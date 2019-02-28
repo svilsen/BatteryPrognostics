@@ -38,8 +38,12 @@ correct_time <- function(I, V, T) {
     .Call('_BatteryPrognostics_correct_time', PACKAGE = 'BatteryPrognostics', I, V, T)
 }
 
-compare_windows_cpp <- function(I1, I2, SOC1, SOC2, W, R, epsilon, delta, trace, trace_limit) {
-    .Call('_BatteryPrognostics_compare_windows_cpp', PACKAGE = 'BatteryPrognostics', I1, I2, SOC1, SOC2, W, R, epsilon, delta, trace, trace_limit)
+compare_windows_cpp <- function(I1, I2, V1, V2, W, R, epsilon, delta, trace, trace_limit) {
+    .Call('_BatteryPrognostics_compare_windows_cpp', PACKAGE = 'BatteryPrognostics', I1, I2, V1, V2, W, R, epsilon, delta, trace, trace_limit)
+}
+
+compare_windows_ga_cpp <- function(I1, I2, V1, V2, Temp1, Temp2, mutation_window, restrict_temperature, restrict_voltage, Wmin, Wmax, Imin, N_evolution, N_keep, trace, trace_limit, seed) {
+    .Call('_BatteryPrognostics_compare_windows_ga_cpp', PACKAGE = 'BatteryPrognostics', I1, I2, V1, V2, Temp1, Temp2, mutation_window, restrict_temperature, restrict_voltage, Wmin, Wmax, Imin, N_evolution, N_keep, trace, trace_limit, seed)
 }
 
 extract_resistance_cpp <- function(I, V, T_s, epsilon, Q_max, eta, SOC_0) {

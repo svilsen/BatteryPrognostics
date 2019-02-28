@@ -9,7 +9,8 @@ Maintainer: Søren B. Vilsen <svilsen@math.aau.dk>
 Description: State-space model used for filtering and prediction of the state-of-charge and the state-of-health of Li-ion batteries by voltage given current and temperature.
 License: MIT
 Imports: 
-    Rcpp (>= 0.12.17), 
+    Rcpp (>= 0.12.17),
+    BH,
     dplyr,
     ggplot2,
     Rsolnp,
@@ -18,7 +19,8 @@ Imports:
     pracma
 LinkingTo: 
     Rcpp, 
-    RcppArmadillo
+    RcppArmadillo,
+    BH
 RoxygenNote: 6.0.1
 Suggests: 
     knitr,

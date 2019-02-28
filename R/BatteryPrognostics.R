@@ -4,7 +4,7 @@
 #' @docType package
 #' @author Søren B. Vilsen <svilsen@math.aau.dk>
 #' @importFrom Rcpp evalCpp
-#' @import Rsolnp
+#' @import Rsolnp BH dplyr ggplot2 doParallel foreach pracma
 #' @useDynLib BatteryPrognostics
 #' @name BatteryPrognostics
 NULL

@@ -393,29 +393,31 @@ ggplot.histogram <- function(xhist, freq = FALSE, density = TRUE, xlab = "", yla
 #' 
 #' @param I1 Numeric vector of length 'T1'.
 #' @param I2 Numeric vector of length 'T2'.
-#' @param SOC1 Numeric vector of length 'T1'.
-#' @param SOC2 Numeric vector of length 'T2'.
-#' @param W Scalar -- the window size.
-#' @param R Scalar -- the maximum allowed number of place the two windows exceed epsilon.
+#' @param V1 Numeric vector of length 'T1'.
+#' @param V2 Numeric vector of length 'T2'.
+#' @param W Scalar: the window size.
+#' @param R Scalar: the maximum allowed number of place the two windows exceed epsilon.
 #' @param epsilon Tolerance used when comparing windows of 'I1' and 'I2'.
 #' @param delta Tolerance used when comparing the initial index of the window in 'SOC1' and 'SOC2'.
+#' @param trace TRUE/FLASE: Show trace?
+#' @param trace_limit Scalar: Limit the trace shown to 'trace_limit'.
 #' @param return_tibble TRUE/FALSE: Should a tibble be returned?
 #' 
 #' @details No default values are used for 'W', 'epsilon', or 'delta' as the choise of e.g. 'epsilon' and 'delta' are heavily dependent on the scale of the 'Is' and the 'SOCs'. Furthermore, the 'SOCs' are needed to reduce the amount of "relevant" information, otherwise the method will run out of memory quickly.
 #'
 #' @return Either a list of lists, or a \link{tibble}.
 #' @export
-compare_windows <- function(I1, I2, SOC1, SOC2, W, R, epsilon, delta, trace = TRUE, trace_limit = 10000, return_tibble = TRUE) {
-    if (length(I1) != length(SOC1)) {
-        stop("'I1' and 'SOC1' must have the same length.")
+compare_windows <- function(I1, I2, V1, V2, W, R, epsilon, delta, trace = TRUE, trace_limit = 10000, return_tibble = TRUE) {
+    if (length(I1) != length(V1)) {
+        stop("'I1' and 'V1' must have the same length.")
     }
     
-    if (length(I2) != length(SOC2)) {
-        stop("'I2' and 'SOC2' must have the same length.")
+    if (length(I2) != length(V2)) {
+        stop("'I2' and 'V2' must have the same length.")
     }
     
     if ((W > length(I1)) || (W > length(I2))) {
-        stop("The window size, 'W', should be smaller both 'I1'/'SOC1' and 'I2'/'SOC2'.")
+        stop("The window size, 'W', should be smaller both 'I1'/'V1' and 'I2'/'V2'.")
     }
     
     if (R > W) {
@@ -430,7 +432,7 @@ compare_windows <- function(I1, I2, SOC1, SOC2, W, R, epsilon, delta, trace = TR
     }
     
     system.time({
-        res <- BatteryPrognostics:::compare_windows_cpp(I1, I2, SOC1, SOC2, W, R, epsilon, delta, trace, trace_limit)
+        res <- BatteryPrognostics:::compare_windows_cpp(I1, I2, V1, V2, W, R, epsilon, delta, trace, trace_limit)
     })
     
     if (return_tibble) {
@@ -439,3 +441,75 @@ compare_windows <- function(I1, I2, SOC1, SOC2, W, R, epsilon, delta, trace = TR
     
     return(res)
 }
+
+#' @title Compare windows using genetic algorithm
+#' 
+#' @description Compare windows of two vectors 'I1' and 'I2' using variable window sizes in a multi-objective GA.
+#' 
+#' @param I1 Numeric vector of length 'T1'.
+#' @param I2 Numeric vector of length 'T2'.
+#' @param V1 Numeric vector of length 'T1'.
+#' @param V2 Numeric vector of length 'T2'.
+#' @param Temp1 Numeric vector of length 'T1'.
+#' @param Temp2 Numeric vector of length 'T2'.
+#' @param MutationWindow Scalar: The size of the mutation window.
+#' @param RestrictTemperature Numeric: The maximal allowed initial difference between the temperatures.
+#' @param RestrictVoltage Numeric: The maximal allowed difference between the beginning and end between the voltages.
+#' @param Wmin Scalar: Minimum the window size.
+#' @param Wmax Scalar: Maximum the window size.
+#' @param Imin Scalar: Minumum allowed starting current (A).
+#' @param N_evolution Scalar: The number of evolutions of the GA.
+#' @param N_keep Scalar: The number of individuals to keep form the GA.
+#' @param trace TRUE/FLASE: Show trace?
+#' @param trace_limit Scalar: Limit the trace shown to 'trace_limit'.
+#' @param return_tibble TRUE/FALSE: Should a tibble be returned?
+#' 
+#' @details No default values are used for 'W', 'epsilon', or 'delta' as the choise of e.g. 'epsilon' and 'delta' are heavily dependent on the scale of the 'Is' and the 'SOCs'. Furthermore, the 'SOCs' are needed to reduce the amount of "relevant" information, otherwise the method will run out of memory quickly.
+#'
+#' @return Either a list of lists, or a \link{tibble}.
+#' @export
+compare_windows_ga <- function(I1, I2, V1, V2, Temp1, Temp2, 
+                               MutationWindow, RestrictTemperature, RestrictVoltage,
+                               Wmin, Wmax, Imin,
+                               N_evolution = 2e6, N_keep = 100, 
+                               trace = TRUE, trace_limit = 10000, return_tibble = TRUE) {
+    if (length(I1) != length(V1)) {
+        stop("'I1' and 'V1' must have the same length.")
+    }
+    
+    if (length(I2) != length(V2)) {
+        stop("'I2' and 'V2' must have the same length.")
+    }
+    
+    if (length(I1) != length(Temp1)) {
+        stop("'I1' and 'Temp1' must have the same length.")
+    }
+    
+    if (length(I2) != length(Temp2)) {
+        stop("'I2' and 'Temp2' must have the same length.")
+    }
+    
+    if ((Wmin > length(I1)) || (Wmin > length(I2))) {
+        stop("The minimum window size, 'Wmin', should be smaller both 'I1'/'V1' and 'I2'/'V2'.")
+    }
+    
+    if ((Wmax > length(I1)) || (Wmax > length(I2))) {
+        stop("The maximum window size, 'Wmax', should be smaller both 'I1'/'V1' and 'I2'/'V2'.")
+    }
+    
+    if (Wmax < Wmin) {
+        stop("The maximum window size, 'Wmax', should be larger than minimum window size, 'Wmin'.")
+    }
+    
+    res <- BatteryPrognostics:::compare_windows_ga_cpp(I1, I2, V1, V2, Temp1, Temp2, 
+                                                       MutationWindow, RestrictTemperature, RestrictVoltage, 
+                                                       Wmin, Wmax, Imin,
+                                                       N_evolution, N_keep, trace, trace_limit)
+    
+    if (return_tibble) {
+        res <- tibble() 
+    }
+    
+    return(res)
+}
+
