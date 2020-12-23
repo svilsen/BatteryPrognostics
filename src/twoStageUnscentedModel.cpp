@@ -8,7 +8,7 @@ private:
     double dt, eta, C_max, gamma, xi, kappa, lambda, epsilon, R0, V_OC;
     
     bool trace;
-    unsigned int traceLimit, S, N, K, T;
+    unsigned int trace_limit, S, N, K, T;
     
     arma::colvec f(const unsigned int & t, const arma::colvec & theta_) 
     {
@@ -191,9 +191,9 @@ public :
                 const arma::mat & P_theta_, const double & dt_, const unsigned int K_,
                 const double SOC_0_, const double C_max_, const double & eta_,
                 const double & gamma_, const double & xi_, const double & kappa_, const double & epsilon_,
-                const arma::mat & R_, const arma::mat & Q_, const bool & trace_, const unsigned int & traceLimit_) :
+                const arma::mat & R_, const arma::mat & Q_, const bool & trace_, const unsigned int & trace_limit_) :
         I(I_), V(V_), theta(theta_), dt(dt_), K(K_), 
-        trace(trace_), traceLimit(traceLimit_), C_max(C_max_), eta(eta_), 
+        trace(trace_), trace_limit(trace_limit_), C_max(C_max_), eta(eta_), 
         gamma(gamma_), xi(xi_), kappa(kappa_), epsilon(epsilon_),
         R(R_), Q(Q_), N(1)
     {
@@ -222,7 +222,7 @@ public :
         double percentage_error = std::abs((Vhat[0] - V[0]) / V[0]);
         for (unsigned int t = 1; t < T; t++) 
         {
-            if (trace & ((t == 0) | (((t + 1) % traceLimit) == 0) | (t == (T - 1))))
+            if (trace & ((t == 0) | (((t + 1) % trace_limit) == 0) | (t == (T - 1))))
             {
                 Rcpp::Rcout << "Iteration: " << t + 1 << " / " << T << "\n";
             }

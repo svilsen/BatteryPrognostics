@@ -4,12 +4,15 @@
 \alias{resistance_parameters_interpolate}
 \title{Interpolate 'resistance_parameters'}
 \usage{
-resistance_parameters_interpolate(resistance_parameters, smooth = FALSE)
+resistance_parameters_interpolate(resistance_parameters, smooth = FALSE,
+  limits = NULL)
 }
 \arguments{
 \item{resistance_parameters}{A list containing a vector of weeks and a matrix of estimated parameters constructed using \link{estimate_parameters_resistance_weeks}.}
 
 \item{smooth}{TRUE/FALSE: Should the fitted 'gam_list' be used to smooth the estimated parameters.}
+
+\item{limits}{A vector of one or two elements indicating the limits of the 'W'.}
 }
 \value{
 An interpolated object of class 'resistance_parameters'.

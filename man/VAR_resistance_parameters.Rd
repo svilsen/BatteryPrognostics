@@ -17,3 +17,6 @@ A \link{varest}-object.
 \description{
 A wrapper for the VAR function for the class 'resistance_parameters'. The function also interpolates weeks not found in the provided 'resistance_parameters'-object.
 }
+\details{
+Note: The standard deviation is fitted on a log-scale to ensure that when predicting, we can take 'exp()' to get values > 0.
+}

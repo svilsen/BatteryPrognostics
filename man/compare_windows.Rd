@@ -4,8 +4,9 @@
 \alias{compare_windows}
 \title{Compare windows}
 \usage{
-compare_windows(I1, I2, V1, V2, W, R, epsilon, delta, trace = TRUE,
-  trace_limit = 10000, return_tibble = TRUE)
+compare_windows(I1, I2, V1, V2, W, W_extension, R, epsilon, delta,
+  extension_type = "voltage", trace = TRUE, trace_limit = 10000,
+  return_tibble = TRUE)
 }
 \arguments{
 \item{I1}{Numeric vector of length 'T1'.}
@@ -18,11 +19,15 @@ compare_windows(I1, I2, V1, V2, W, R, epsilon, delta, trace = TRUE,
 
 \item{W}{Scalar: the window size.}
 
+\item{W_extension}{Scalar: search window for 'I2' / 'V2' when compared to 'I1' / 'V1'.}
+
 \item{R}{Scalar: the maximum allowed number of place the two windows exceed epsilon.}
 
 \item{epsilon}{Tolerance used when comparing windows of 'I1' and 'I2'.}
 
-\item{delta}{Tolerance used when comparing the initial index of the window in 'SOC1' and 'SOC2'.}
+\item{delta}{Tolerance used when comparing the initial index of the window in 'V1' and 'V2'.}
+
+\item{extension_type}{String: which type of window extension should be used (see details for allowed types)?}
 
 \item{trace}{TRUE/FLASE: Show trace?}
 
@@ -37,5 +42,9 @@ Either a list of lists, or a \link{tibble}.
 Compare all windows, with size W, of two vectors, 'I1' and 'I2', with the added requirement that starting index of the windows being compared of two other vectors 'SOC1' and 'SOC2' are within some tolerance 'delta'. The windows are compared by counting the number of indices where they differ more than some tolerance epsilon.
 }
 \details{
-No default values are used for 'W', 'epsilon', or 'delta' as the choise of e.g. 'epsilon' and 'delta' are heavily dependent on the scale of the 'Is' and the 'SOCs'. Furthermore, the 'SOCs' are needed to reduce the amount of "relevant" information, otherwise the method will run out of memory quickly.
+No default values are used for 'W', 'epsilon', or 'delta' as the choise of e.g. 'epsilon' and 'delta' are heavily dependent on the scale of the 'I' and 'V' vectors.
+
+At the moment the function allows for two types of window extension: 'voltage' and 'current'. 
+The 'voltage' type tries to match the voltage at the end of each window in the second data set to the first data set by adjusting the size of the window in the former. While the 'current' type tries to extend both windows as much as possible while keeping the difference in the current between the set limits.
+The 'voltage' type is default.
 }

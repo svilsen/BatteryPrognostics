@@ -4,8 +4,8 @@
 \alias{extract_resistance}
 \title{Extract resistance}
 \usage{
-extract_resistance(I, V, T_s = NULL, epsilon = 0.001, Q_max = 2.56,
-  eta = 1, SOC_0 = 0, convert_to_tibble = FALSE)
+extract_resistance(I, V, T_s = NULL, SOC = NULL, epsilon = 0.001,
+  Q_max = 2.56, eta = 1, SOC_0 = 0, convert_to_tibble = FALSE)
 }
 \arguments{
 \item{I}{Vector containing the current.}
@@ -13,6 +13,8 @@ extract_resistance(I, V, T_s = NULL, epsilon = 0.001, Q_max = 2.56,
 \item{V}{Vector containing the voltage.}
 
 \item{T_s}{Vector containing the time step sizes (in seconds). If 'NULL' it is set as 'seq_along(I)'.}
+
+\item{SOC}{Vector containing the SOC. If 'NULL' it is estimated by Columb counting, using the parameter 'SOC_0' as a starting point.}
 
 \item{epsilon}{The lower limit used for identifying change in current. Default is '1e-3'.}
 

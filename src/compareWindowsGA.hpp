@@ -48,6 +48,9 @@ public:
     Population();
     Population(const unsigned int & N_);
     
+    std::vector<unsigned int> FindDuplicates(const Individual & NewIndividual);
+    int BestDuplicates(const Individual & NewIndividual, const std::vector<unsigned int> & duplicateIndicies);
+    void RemoveDuplicates(const std::vector<unsigned int> & duplicateIndicies, const int & maxIndex);
     void Insert(const Individual & NewIndividual);
 };
 

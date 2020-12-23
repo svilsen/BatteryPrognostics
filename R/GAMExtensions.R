@@ -7,20 +7,18 @@
 #' @return A list of GAM fits.
 #' @export
 gam_parameter_fit <- function(resistance_parameters) {
-    res_tibble <- resistance_parameters %>% as_tibble() %>% spread(key = ParameterName, value = Parameter)
+    res_tibble <- resistance_parameters %>% 
+        as_tibble() %>% 
+        spread(key = ParameterName, value = Parameter)
     
     res <- vector("list", dim(res_tibble)[2] - 1)
-    res[[1]] <- gam(beta_0 ~ s(Week), data = res_tibble)
-    res[[2]] <- gam(beta_1 ~ s(Week), data = res_tibble)
-    
-    not_symmetric <- "beta_2" %in% names(res_tibble)
-    if (not_symmetric) {
-        res[[3]] <- gam(beta_2 ~ s(Week), data = res_tibble)
+    res_names <- colnames(resistance_parameters$Parameters)
+    for (i in 1:(dim(res_tibble)[2] - 1)) {
+        formula <- as.formula(paste("`", res_names[i], "` ~ s(Time)", sep = ""))
+        res[[i]] <- suppressWarnings(gam(formula, data = res_tibble))
     }
     
-    res[[3 + as.numeric(not_symmetric)]] <- gam(sd ~ s(Week), data = res_tibble)
-    
-    names(res) <- colnames(resistance_parameters$Parameters)
+    names(res) <- res_names
     class(res) <- "gam_list"
     return(res)
 }
@@ -62,10 +60,10 @@ ggplot.gam_list <- function(gam_list, ...) {
     }
     
     for (i in seq_along(gam_list)) {
-        Week_i = gam_list[[i]]$data$Week 
+        Week_i = gam_list[[i]]$data$Time 
         ParameterName_i = names(gam_list[i])
-        data_tibble[[i]] <- tibble(Week = Week_i, Parameter = gam_list[[i]]$y, ParameterName = ParameterName_i)
-        parameter_tibble[[i]] <- tibble(Week = Week_i, Parameter = pred_list[[i]]$fit, ParameterName = ParameterName_i)
+        data_tibble[[i]] <- tibble(Time = Week_i, Parameter = gam_list[[i]]$y, ParameterName = ParameterName_i)
+        parameter_tibble[[i]] <- tibble(Time = Week_i, Parameter = pred_list[[i]]$fit, ParameterName = ParameterName_i)
         
         if (se.fit) {
             if (is.null(arg_list$cv)) {
@@ -90,7 +88,7 @@ ggplot.gam_list <- function(gam_list, ...) {
         mutate(ParameterName = factor(ParameterName, levels = c("sd", "beta_0", "beta_1", "beta_2")))
     
     new_labels <- as_labeller(c(beta_0 = "beta[0]", beta_1 = "beta[1]", beta_2 = "beta[2]", sd = "Standard~deviation"), label_parsed)
-    p <- ggplot(data_tibble, aes(x = Week, y = Parameter)) + 
+    p <- ggplot(data_tibble, aes(x = Time, y = Parameter)) + 
         facet_wrap(~ParameterName, ncol = 2, nrow = 2, scales = "free_y", labeller = new_labels) + 
         ylab("") + theme_bw()
     
@@ -119,8 +117,8 @@ ggplot.gam_list <- function(gam_list, ...) {
 #' @export
 simulate.gam_list <- function(object, nsim = 1, seed = NULL, ...) {
     set.seed(seed)
-    W <- object[[1]]$data$Week
-    new_data <- data.frame(Week = seq(min(W), max(W)))
+    W <- object[[1]]$data$Time
+    new_data <- data.frame(Time = seq(min(W), max(W)))
     
     res <- vector("list", length(object))
     for (j in seq_along(object)) {
@@ -149,7 +147,7 @@ simulate.gam_list <- function(object, nsim = 1, seed = NULL, ...) {
     }
     
     names(res) <- names(object)
-    res_list <- list(W = new_data$Week, 
+    res_list <- list(W = new_data$Time, 
                      Simulations = res, 
                      GamList = object)
     class(res_list) <- "simulate_list"
@@ -163,22 +161,22 @@ ggplot.simulate_list <- function(simulate_list) {
     data_tibble <- lapply(seq_along(simulate_list$Simulations), function(i) {
         sim <- simulate_list$Simulations[[i]]
         res <- sim %>% as_tibble() %>% 
-            mutate(Week = W) %>% 
-            gather(key = ParameterName, value = Parameter, -Week) %>% 
+            mutate(Time = W) %>% 
+            gather(key = ParameterName, value = Parameter, -Time) %>% 
             mutate(Simulation = as.numeric(str_sub(ParameterName, 2)), 
                    ParameterName = names(simulate_list$Simulations[i]))
         return(res)
     }) %>% bind_rows() %>% 
         mutate(ParameterName = factor(ParameterName, levels = c("sd", "beta_0", "beta_1", "beta_2")))
     
-    pred_gam_list <- predict(simulate_list$GamList, newdata = data.frame(Week = simulate_list$W)) %>% 
+    pred_gam_list <- predict(simulate_list$GamList, newdata = data.frame(Time = simulate_list$W)) %>% 
         enframe(name = "ParameterName", value = "Parameter") %>% 
-        mutate(Week = list(W)) %>% 
+        mutate(Time = list(W)) %>% 
         unnest() %>% 
         mutate(ParameterName = factor(ParameterName, levels = c("sd", "beta_0", "beta_1", "beta_2")))
     
     new_labels <- as_labeller(c(beta_0 = "beta[0]", beta_1 = "beta[1]", beta_2 = "beta[2]", sd = "Standard~deviation"), label_parsed)
-    p <- ggplot(data_tibble, aes(x = Week, y = Parameter)) + 
+    p <- ggplot(data_tibble, aes(x = Time, y = Parameter)) + 
         geom_line(aes(group = Simulation), alpha = 0.2) + 
         facet_wrap(~ParameterName, ncol = 2, nrow = 2, scales = "free_y", labeller = new_labels) + 
         geom_line(data = pred_gam_list, alpha = 1, colour = "dodgerblue2", size = 1.2) +
@@ -194,24 +192,40 @@ ggplot.simulate_list <- function(simulate_list) {
 #' 
 #' @param resistance_parameters A list containing a vector of weeks and a matrix of estimated parameters constructed using \link{estimate_parameters_resistance_weeks}.
 #' @param smooth TRUE/FALSE: Should the fitted 'gam_list' be used to smooth the estimated parameters.
+#' @param limits A vector of one or two elements indicating the limits of the 'W'.
 #' 
 #' @return An interpolated object of class 'resistance_parameters'.
 #' @export
-resistance_parameters_interpolate <- function(resistance_parameters, smooth = FALSE) {
+resistance_parameters_interpolate <- function(resistance_parameters, smooth = FALSE, 
+                                              limits = NULL) {
     gam_list <- gam_parameter_fit(resistance_parameters)
-    W <- 1:resistance_parameters$W[length(resistance_parameters$W)]
-    pred_all <- predict(gam_list, newdata = tibble(Week = W)) %>% 
-        as_tibble() %>% 
-        mutate(Week = 1:n())
     
-    if (smooth) {
-        est_pars_ <- pred_all %>% dplyr::select(-Week) %>% as.matrix()
+    if (length(limits) == 1) {
+        Wmin = 1
+        Wmax = limits
+    }
+    else if (length(limits) == 2) {
+        Wmin = limits[1]
+        Wmax = limits[2]
     }
     else {
-        not_in <- pred_all %>% filter(!(Week %in% resistance_parameters$W))
-        est_pars_ <- matrix(0, ncol = ncol(resistance_parameters$Parameters), nrow = 38) 
-        est_pars_[-not_in$Week, ] <- resistance_parameters$Parameters
-        est_pars_[not_in$Week, ] <- not_in %>% dplyr::select(-Week) %>% as.matrix()
+        Wmin = 1
+        Wmax = resistance_parameters$W[length(resistance_parameters$W)]
+    }
+    
+    W <- seq(Wmin, Wmax, 1)
+    pred_all <- predict(gam_list, newdata = tibble(Time = W)) %>% 
+        as_tibble() %>% 
+        mutate(Time = 1:n())
+    
+    if (smooth) {
+        est_pars_ <- pred_all %>% dplyr::select(-Time) %>% as.matrix()
+    }
+    else {
+        not_in <- pred_all %>% filter(!(Time %in% resistance_parameters$W))
+        est_pars_ <- matrix(0, ncol = ncol(resistance_parameters$Parameters), nrow = length(W)) 
+        est_pars_[-not_in$Time, ] <- resistance_parameters$Parameters
+        est_pars_[not_in$Time, ] <- not_in %>% dplyr::select(-Time) %>% as.matrix()
     }
     
     colnames(est_pars_) <- names(gam_list)

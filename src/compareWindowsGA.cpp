@@ -31,32 +31,22 @@ bool Dominates(const Individual & f, const Individual & g, unsigned int m)
 bool IsEqual(const Individual & f, const Individual & g) 
 {
     bool is_equal = false;
-    if ((std::abs(static_cast<int>(f.Value[0]) - static_cast<int>(g.Value[0])) < 1e-8) & 
-        (std::abs(static_cast<int>(f.Value[1]) - static_cast<int>(g.Value[1])) < 1e-8))
+    double f_0 = static_cast<double>(f.Value[0]);
+    double f_1 = static_cast<double>(f.Value[1]);
+    
+    double g_0 = static_cast<double>(g.Value[0]);
+    double g_1 = static_cast<double>(g.Value[1]);
+    
+    double diff_0 = f_0 - g_0;
+    double diff_1 = f_1 - g_1;
+    
+    if (((std::abs(diff_0) < 1e-8) & (std::abs(diff_1) < 1e-8)) || 
+        (f.Value[0] < (g.Value[0] + g.Value[2])) & (f.Value[0] > g.Value[0]) ||
+        (g.Value[0] < (f.Value[0] + f.Value[2])) & (g.Value[0] > f.Value[0]) || 
+        (f.Value[1] < (g.Value[1] + g.Value[2])) & (f.Value[1] > g.Value[1]) || 
+        (g.Value[1] < (f.Value[1] + f.Value[2])) & (g.Value[1] > f.Value[1]))
     {
         is_equal = true;
-    }
-    else if (f.Value[0] < (g.Value[0] + g.Value[2])) 
-    {
-        if (g.Value[1] < (f.Value[1] + f.Value[2])) 
-        {
-            is_equal = true;
-        }
-        else if (f.Value[1] < (g.Value[1] + g.Value[2]))
-        {
-            is_equal = true;
-        }
-    }
-    else if (g.Value[0] < (f.Value[0] + f.Value[2])) 
-    {
-        if (g.Value[1] < (f.Value[1] + f.Value[2])) 
-        {
-            is_equal = true;
-        }
-        else if (f.Value[1] < (g.Value[1] + g.Value[2]))
-        {
-            is_equal = true;
-        }
     }
     
     return is_equal;
@@ -65,12 +55,12 @@ bool IsEqual(const Individual & f, const Individual & g)
 unsigned int Contained(const Individual & f, const Individual & g) 
 {
     int contained = -1;
-    if ((f.Value[0] > g.Value[0]) & ((f.Value[0] + f.Value[2]) < (g.Value[0] + g.Value[2]))) 
+    if ((f.Value[0] >= g.Value[0]) & ((f.Value[0] + f.Value[2]) <= (g.Value[0] + g.Value[2]))) 
     {
         // f is contained in g
         contained = 0;
     }
-    else if ((f.Value[0] < g.Value[0]) & ((f.Value[0] + f.Value[2]) > (g.Value[0] + g.Value[2]))) 
+    else if ((f.Value[0] <= g.Value[0]) & ((f.Value[0] + f.Value[2]) >= (g.Value[0] + g.Value[2]))) 
     {
         // g is contained in f
         contained = 1;
@@ -79,15 +69,8 @@ unsigned int Contained(const Individual & f, const Individual & g)
     return contained;
 }
 
-// Quick-sort for populations...
-void Swap(Individual & a, Individual & b) 
-{ 
-    Individual t = a; 
-    a = b; 
-    b = t; 
-} 
-
-void SlowSort(std::vector<Individual> & Individuals) 
+// Insertion-sort for populations...
+void InsertionSort(std::vector<Individual> & Individuals) 
 { 
     unsigned int N = Individuals.size();
     for (unsigned int n = 1; n < N; n++) 
@@ -148,51 +131,73 @@ Population::Population(const unsigned int & N_) :
     Individuals = std::vector<Individual>(N);
 }
 
-void Population::Insert(const Individual & NewIndividual) 
+std::vector<unsigned int> Population::FindDuplicates(const Individual & NewIndividual)
 {
-    // If duplicates are found they are replaced and sorted...
-    unsigned int n = 0;
-    bool any_duplicates = false;
-    while ((!any_duplicates) & (n < N)) 
+    std::vector<unsigned int> duplicateIndicies;
+    for (unsigned int n = 0; n < N; n++) 
     {
-        const bool & is_equal = IsEqual(NewIndividual, Individuals[n]);
-        if (is_equal) 
-        {
-            const bool dominates = Dominates(NewIndividual, Individuals[n], 0);
-            if (dominates) 
-            {
-                Individuals[n] = NewIndividual;
-            }
-            
-            any_duplicates = true;
-        }
+        const bool is_equal = IsEqual(NewIndividual, Individuals[n]);
         
-        if (!any_duplicates) 
+        if (is_equal)
         {
-            const int & contained = Contained(NewIndividual, Individuals[n]);
+            duplicateIndicies.push_back(n);
+        }
+        else 
+        {
+            const int contained = Contained(NewIndividual, Individuals[n]);
             if (contained > -1) 
             {
-                const bool dominates = Dominates(NewIndividual, Individuals[n], 0);
-                if (dominates) 
-                {
-                    Individuals[n] = NewIndividual;
-                }
-                
-                any_duplicates = true;
+                duplicateIndicies.push_back(n);
             }
         }
-        
-        n++;
     }
     
-    // If duplicates are found they are replaced and the list is sorted, else the individual is inserted...
-    if (any_duplicates) 
+    return duplicateIndicies;
+}
+
+int Population::BestDuplicates(const Individual & NewIndividual, const std::vector<unsigned int> & duplicateIndicies)
+{
+    const unsigned int M = duplicateIndicies.size();
+    Individual MaxIndividual = NewIndividual;
+    int MaxIndex = -1;
+    
+    for (unsigned int m = 0; m < M; m++)
     {
-        SlowSort(Individuals);
+        const Individual & Individual_m = Individuals[duplicateIndicies[m]];
+        const bool dominates = Dominates(Individual_m, MaxIndividual, 0);
+        if (dominates) 
+        {
+            MaxIndividual = Individual_m;
+        }
     }
-    else  
+    
+    return MaxIndex;
+}
+
+void Population::RemoveDuplicates(const std::vector<unsigned int> & duplicateIndicies, const int & maxIndex)
+{
+    const unsigned int M = duplicateIndicies.size();
+    const Individual I_empty;
+    
+    for (unsigned int m = 0; m < M; m++)
     {
-        unsigned int M = NewIndividual.M;
+        if (m != maxIndex) 
+        {
+            Individuals[duplicateIndicies[m]] = I_empty;
+        }
+    }
+}
+
+
+void Population::Insert(const Individual & NewIndividual) 
+{
+    std::vector<unsigned int> duplicateIndices = FindDuplicates(NewIndividual);
+    int maxIndex = BestDuplicates(NewIndividual, duplicateIndices);
+    RemoveDuplicates(duplicateIndices, maxIndex);
+    InsertionSort(Individuals);
+    
+    if (maxIndex == -1) 
+    {
         bool dominates = Dominates(NewIndividual, Individuals[0], 0);
         if (dominates) 
         {
@@ -311,11 +316,6 @@ CompareWindowsGA::CompareWindowsGA(const std::vector<double> & I1_, const std::v
 { 
     CreateNewIndividual();
     BestIndividuals = Population(N_keep);
-    for (unsigned int n = 0; n < N_keep; n++) 
-    {
-        CreateNewIndividual();
-        BestIndividuals.Insert(NewIndividual);
-    }
     
     Children = std::vector<Individual>(6);
 }
@@ -436,11 +436,7 @@ void CompareWindowsGA::Mutate(Individual & individual, const unsigned int & m, c
     std::vector<double> newFitness = CalculateFitness(newValue);
     Individual newIndividual(newValue, newFitness);
     
-    bool dominates = Dominates(newIndividual, individual, 0);
-    if (dominates) 
-    {
-        individual = newIndividual;
-    }
+    individual = newIndividual;
 }
 
 void CompareWindowsGA::Mutation() 
@@ -464,12 +460,6 @@ void CompareWindowsGA::Mutation()
 
 void CompareWindowsGA::Selection() 
 {
-    // bool dominates = Dominates(OldIndividual, NewIndividual, 0);
-    // if (dominates) 
-    // {
-    //     NewIndividual = OldIndividual;
-    // }
-    
     bool dominates;
     for (unsigned int c = 0; c < Children.size(); c++) 
     {

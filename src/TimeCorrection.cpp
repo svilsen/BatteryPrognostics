@@ -16,7 +16,12 @@ arma::mat correct_time(const arma::colvec & I, const arma::colvec & V, const arm
     unsigned int S = I.size();
     for (unsigned int s = 1; s < S; s++)
     {
-        S_total += std::ceil(T[s] - T[s - 1]);
+        double new_time = std::ceil(T[s] - T[s - 1]);
+        if (new_time < 1) 
+            new_time = 1;
+        
+        unsigned int new_time_ = static_cast<unsigned int>(new_time);
+        S_total += new_time_;
     }
     
     arma::mat M(S_total, 3);
@@ -27,7 +32,11 @@ arma::mat correct_time(const arma::colvec & I, const arma::colvec & V, const arm
     unsigned int S_total_2 = 1;   
     for (unsigned int s = 1; s < S; s++) 
     {
-        unsigned int S_s = std::ceil(T[s] - T[s - 1]);
+        double new_time = std::ceil(T[s] - T[s - 1]);
+        if (new_time < 1) 
+            new_time = 1;
+        
+        unsigned int S_s = static_cast<unsigned int>(new_time);
         for (unsigned int s_s = 0; s_s < S_s; s_s++) 
         {
             M(S_total_2 + s_s, 0) = I[s];

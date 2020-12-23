@@ -138,7 +138,7 @@ extractLookupTables <- function(current, voltage, time_s, t_k,
                     if (Rk[[K - k]][i, j] < 0) 
                         Rk[[K - k]][i, j] = abs(Rk[[K - k]][i, j])
                     
-                    Ck[[K - k]][i, j] = tau[K - k] / (capacityScalingParameters[[K - k]][i] * Rk[[K - k]][i, j])
+                    Ck[[K - k]][i, j] = tau[K - k] / (Rk[[K - k]][i, j])
                 }
             }
         }
@@ -172,11 +172,11 @@ extractLookupTables <- function(current, voltage, time_s, t_k,
 #' @param dt The simulation step-size.
 #' @param SOCStart The starting SOC value.
 #' @param trace TRUE/FALSE: Show trace?
-#' @param traceLimit Only show the trace for the iterations of specified 'traceLimit'.
+#' @param trace_limit Only show the trace for the iterations of specified 'trace_limit'.
 #' 
 #' @return A list containing the voltage, the filtered voltage, the SOC, the polarisation voltage, and the state variance.
 #' @export
-RCK <- function(current, extractedTables, dt = 1, SOCStart = 0.0, trace = T, traceLimit = 10000) { # voltage, 
+RCK <- function(current, extractedTables, dt = 1, SOCStart = 0.0, trace = T, trace_limit = 10000) { # voltage, 
     currentDifference = diff(current)
     currentChange = current
     currentFixed = current
@@ -202,6 +202,6 @@ RCK <- function(current, extractedTables, dt = 1, SOCStart = 0.0, trace = T, tra
                   extractedTables$Tables$R0, extractedTables$Tables$Rk, extractedTables$Tables$Ck, 
                   matrix(extractedTables$Tables$Cap, nrow = 1), extractedTables$Tables$OCV,
                   extractedTables$Values$SOC / 100, extractedTables$Values$I,
-                  dt, SOCStart, trace, traceLimit)
+                  dt, SOCStart, trace, trace_limit)
     return(res)
 }

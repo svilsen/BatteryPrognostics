@@ -31,6 +31,11 @@ resistance_expected_vectorised <- function(beta_0, beta_1, beta_2, SOC) {
     return(mu)
 }
 
+resistance_expected_model_matrix <- function(beta_w, model_matrix) {
+    mu = model_matrix %*% beta_w
+    return(mu)
+}
+
 #' @title Standard deviation of log-resistance
 #' 
 #' @param beta_w The mean parameters of the resistance.
@@ -45,11 +50,24 @@ resistance_sd <- function(beta_w, R, SOC) {
     return(sd_r)
 }
 
+resistance_sd_mu <- function(mu, R) {
+    sd_r <- sqrt(sum((log(R) - mu)^2) / (length(R) - 1))
+    return(sd_r)
+}
+
 log_likelihood_resistance <- function(pars, R, SOC) {
     log_pars <- log(pars)
     
     mu <- resistance_expected(log_pars, SOC)
     sd_r <- resistance_sd(log_pars, R, SOC)
+    return(-sum(dnorm(log(R), mean = mu, sd = sd_r, log = TRUE)))
+}
+
+log_likelihood_resistance_model_matrix <- function(pars, R, model_matrix) {
+    log_pars <- log(pars)
+    
+    mu <- resistance_expected_model_matrix(log_pars, model_matrix)
+    sd_r <- resistance_sd_mu(mu, R)
     return(-sum(dnorm(log(R), mean = mu, sd = sd_r, log = TRUE)))
 }
 
@@ -82,54 +100,38 @@ estimate_parameters_resistance <- function(R, SOC, symmetric = FALSE) {
     return(res)
 } 
 
-#' @title Symmetry's test
+#' @title Estimate resistance parameters
 #' 
-#' @description Performs likelihood ratio test for symmertry.
+#' @description Estimates the parameters of the resistance model.
 #' 
-#' @param beta_w A matrix of the estimated parameters in the non-symmetric model. 
-#' 
-#' @return A p-value for each week in the provided matrix.
+#' @param R The extracted battery resistance.
+#' @param formula_soc A formula for the SOC component.
+#' @param formula_current A formula for the Current component.
+#' @param data The data need for the components.
+#'  
+#' @return The mean parameters and standard deviations of the resistance model.
 #' @export 
-symmetry_test <- function(beta_w, R, SOC, W) {
-    weeks <- sort(unique(W))
-    
-    ## Symmetric
-    cl <- makeCluster(number_of_clusters)
-    registerDoParallel(cl)
-    
-    symmetric_pars <- foreach (i = seq_along(weeks), .combine = rbind, 
-                     .packages = c('BatteryPrognostics', 'Rsolnp')) %dopar%
-        estimate_parameters_resistance(R[which(W == weeks[i])], SOC[which(W == weeks[i])], TRUE)
-    
-    stopCluster(cl)
-    rownames(symmetric_pars) <- NULL
-    
-    ## Non-symmetric
-    cl <- makeCluster(number_of_clusters)
-    registerDoParallel(cl)
-    
-    non_symmetric_pars <- foreach (i = seq_along(weeks), .combine = rbind, 
-                     .packages = c('BatteryPrognostics', 'Rsolnp')) %dopar%
-        estimate_parameters_resistance(R[which(W == weeks[i])], SOC[which(W == weeks[i])], FALSE)
-    
-    stopCluster(cl)
-    rownames(non_symmetric_pars) <- NULL
-    
-    ## LR-test
-    res <- rep(0, length(weeks))
-    for (w in seq_along(weeks)) {
-        which_w <- which(W == weeks[w])
-        log_like_non_symmetric <- log_likelihood_resistance(exp(non_symmetric_pars[w, c("beta_0", "beta_1", "beta_2")]), R[which_w], SOC[which_w])
-        log_like_symmetric <- log_likelihood_resistance(exp(symmetric_pars[w, c("beta_0", "beta_1")]), R[which_w], SOC[which_w])
+estimate_parameters_resistance_formula <- function(R, formula_soc, formula_current, data) {
+    mm_soc <- model.matrix(formula_soc, data = data)
+    mm_current <- model.matrix(formula_current, data = data)
+    mm <- cbind(mm_soc, mm_current)
         
-        LR_stat <- -2 * (log_like_non_symmetric - log_like_symmetric)
-        df <- 1
-        res[w] <- 1 - pchisq(LR_stat, df)
-    }
+    M <- dim(mm)[2]
+    initial_pars <- runif(M)
+    optimal_pars <- solnp(pars = initial_pars,
+                          fun = BatteryPrognostics:::log_likelihood_resistance_model_matrix, 
+                          R = R, model_matrix = mm,
+                          LB = rep(0, M), 
+                          UB = rep(1, M),
+                          control = list(trace = FALSE))
     
-    names(res) <- weeks
+    log_pars <- log(optimal_pars$par)
+    sd_r = BatteryPrognostics:::resistance_sd_mu(mu = mm %*% log_pars, R = R)
+    
+    res <- c(log_pars, sd_r)
+    names(res) <- c(colnames(mm), "sd")
     return(res)
-}
+} 
 
 #' @title Barlett's test
 #' 
@@ -194,6 +196,73 @@ estimate_parameters_resistance_weeks <- function(R, SOC, W, number_of_clusters =
     return(res)
 } 
 
+
+#' @title Estimate resistance parameters
+#' 
+#' @description Estimates the parameters of the resistance model for every level of 'W'.
+#' 
+#' @param R The extracted resistance -- either a character string or a vector.
+#' @param W The time each resistance value belongs to -- either a character string or a vector.
+#' @param formula_soc A formula for the SOC component.
+#' @param formula_current A formula for the Current component.
+#' @param data The data need for the components.
+#' @param number_of_clusters The number of clusters passed to 'doParallel' and 'foreach'.
+#' @param alpha_level The significance level used for Barlett's and LR tests.
+#' 
+#' @return A matrix with a row for every week containing the mean parameters and standard deviations of the resistance model.
+#' @export 
+estimate_parameters_resistance_all <- function(R, W, 
+                                               formula_soc, formula_current, data, 
+                                               number_of_clusters = 4, alpha_level = 0.05) {
+    if (is.character(R)) {
+        R <- unlist(data[, R])
+    }
+    else if (length(R) != dim(data)[1]) {
+        stop("'R' should have the same length as the number of rows of 'data'.")
+    }
+    
+    if (is.character(W)) {
+        W <- unlist(data[, W])
+    }
+    else if (length(W) != dim(data)[1]) {
+        stop("'W' should have the same length as the number of rows of 'data'.")
+    }
+    
+    # Estimate parameters
+    unique_W <- sort(unique(W))
+    
+    cl <- makeCluster(number_of_clusters)
+    registerDoParallel(cl)
+    
+    pars <- foreach (i = seq_along(unique_W), .combine = rbind, 
+                     .packages = c('BatteryPrognostics', 'Rsolnp')) %dopar%
+        estimate_parameters_resistance_formula(R[which(W == unique_W[i])], 
+                                               formula_soc = formula_soc,
+                                               formula_current = formula_current, 
+                                               data = data[which(W == unique_W[i]), ])
+    
+    stopCluster(cl)
+    rownames(pars) <- NULL
+    
+    is_inf <- which(is.infinite(pars), arr.ind = TRUE)[1]
+    if ((length(is_inf) > 0) & (!is.na(is_inf))) {
+        W <- W[-which(W %in% unique_W[is_inf])]
+        unique_W <- unique_W[-is_inf]
+        pars <- pars[-is_inf, ]
+    }
+    
+    # Barlett's test
+    table_W <- table(W)
+    names(dimnames(table_W)) <- "n"
+    barletts_test_ <- barletts_test(table_W, pars[, "sd"], alpha_level)
+    
+    res <- list(W = unique_W, Parameters = pars, 
+                BarlettsTest = barletts_test_)
+    
+    class(res) <- "resistance_parameters"
+    return(res)
+} 
+
 #' @title Estimate resistance parameters for all weeks
 #' 
 #' @description Estimates the parameters of the resistance model for every week on record. The estimated parameters are stored in a tibble for ease of use.
@@ -240,16 +309,40 @@ resistance_parameters_list <- function(...) {
 }
 
 #' @export
-ggplot.resistance_parameters <- function(resistance_parameters) {
-    data_tibble <- resistance_parameters %>% as_tibble() %>% 
-        mutate(ParameterName = factor(ParameterName, levels = c("sd", "beta_0", "beta_1", "beta_2")))
+ggplot.resistance_parameters <- function(resistance_parameters, ...) {
+    arg_list <- list(...)
     
-    new_labels <- as_labeller(c(beta_0 = "beta[0]", beta_1 = "beta[1]", beta_2 = "beta[2]", sd = "Standard~deviation"), label_parsed)
-    p <- ggplot(data_tibble, aes(x = Week, y = Parameter)) + 
+    if (is.null(arg_list$levels)) {
+        levels <- colnames(resistance_parameters$Parameters)
+    }
+    else {
+        levels <- arg_list$levels
+    }
+    
+    if (is.null(arg_list$labels)) {
+        labels <- levels
+    }
+    else {
+        labels <- arg_list$labels
+    }
+    
+    if (is.null(arg_list$xlab)) {
+        xlab <- "Time"
+    }
+    else {
+        xlab <- arg_list$xlab
+    }
+    
+    data_tibble <- resistance_parameters %>% as_tibble() %>% 
+        mutate(ParameterName = factor(ParameterName, levels = levels))
+    
+    names(labels) <- levels
+    new_labels <- as_labeller(labels, label_parsed)
+    p <- ggplot(data_tibble, aes(x = Time, y = Parameter)) + 
         geom_point() + 
         geom_line() + 
-        facet_wrap(~ParameterName, ncol = 2, nrow = 2, scales = "free_y", labeller = new_labels) + 
-        ylab("") + 
+        facet_wrap(~ParameterName, scales = "free_y", labeller = new_labels) + 
+        xlab(xlab) + ylab("") + 
         theme_bw()
     
     return(p)    
@@ -257,8 +350,8 @@ ggplot.resistance_parameters <- function(resistance_parameters) {
 
 #' @export
 ggplot.resistance_parameters_list <- function(resistance_parameters_list, ...) {
-    dots <- list(...)
-    list_names <- dots$list_names
+    arg_list <- list(...)
+    list_names <- arg_list$list_names
     if (is.null(list_names)) {
         list_names <- paste("Pars:", seq_along(resistance_parameters_list), sep = " ")
     }
@@ -269,19 +362,41 @@ ggplot.resistance_parameters_list <- function(resistance_parameters_list, ...) {
         stop("The 'list_names' argument should be 'NULL', have length 1, or have length equal to the 'resistance_parameters_list'.")
     }
     
+    if (is.null(arg_list$levels)) {
+        levels <- unique(do.call("c", lapply(resistance_parameters_list, function(xx) colnames(xx$Parameters))))
+    }
+    else {
+        levels <- arg_list$levels
+    }
+    
+    if (is.null(arg_list$labels)) {
+        labels <- levels
+    }
+    else {
+        labels <- arg_list$labels
+    }
+    
+    if (is.null(arg_list$xlab)) {
+        xlab <- "Time"
+    }
+    else {
+        xlab <- arg_list$xlab
+    }
+    
     data_tibble <- lapply(seq_along(resistance_parameters_list), function(xx) {
         resistance_parameters_list[[xx]] %>% as_tibble() %>%
-            mutate(ParameterName = factor(ParameterName, levels = c("sd", "beta_0", "beta_1", "beta_2")), 
+            mutate(ParameterName = factor(ParameterName, levels = levels), 
                    ListName = paste(xx))
     }) %>% bind_rows()
     
-    new_labels <- as_labeller(c(beta_0 = "beta[0]", beta_1 = "beta[1]", beta_2 = "beta[2]", sd = "Standard~deviation"), label_parsed)
-    p <- ggplot(data_tibble, aes(x = Week, y = Parameter, colour = ListName)) + 
+    names(labels) <- levels
+    new_labels <- as_labeller(labels, label_parsed)
+    p <- ggplot(data_tibble, aes(x = Time, y = Parameter, colour = ListName)) + 
         geom_point() + 
         geom_line() + 
-        facet_wrap(~ParameterName, ncol = 2, nrow = 2, scales = "free_y", labeller = new_labels) + 
+        facet_wrap(~ParameterName, scales = "free_y", labeller = new_labels) + 
         scale_colour_discrete(name = "", labels = list_names) + 
-        ylab("") + 
+        xlab(xlab) + ylab("") + 
         theme_bw()
     
     return(p)    
@@ -326,13 +441,13 @@ resistance_likelihood <- function(log_R, beta_w, sd_w) {
     return(res)
 }
 
-resistance_of_given_week <- function(beta_w, sd_w, n_sims, burn_in, trace, traceLimit, w) {
+resistance_of_given_week <- function(beta_w, sd_w, n_sims, burn_in, trace, trace_limit, w) {
     current_R = rnorm(1, mean = -4, sd = 0.1)
     current_likelihood <- resistance_likelihood(current_R, beta_w, sd_w)
     sampled_R <- rep(NA, n_sims)
     sampled_R[1] <- current_R
     for (i in 2:n_sims) {
-        if (trace & ((i %% traceLimit) == 0))
+        if (trace & ((i %% trace_limit) == 0))
             cat("Week:", w, ":: Iteration:", i, "/", sprintf("%i", n_sims), "\n")
         
         new_R <- rnorm(1, mean = current_R, sd = 0.01)
@@ -360,10 +475,10 @@ resistance_of_given_week <- function(beta_w, sd_w, n_sims, burn_in, trace, trace
 #' @param burn_in The number of initial samples removed as burn-in. 
 #' @param return_tibble TRUE/FALSE: Should a tibble be returned.
 #' @param trace TRUE/FALSE: Should a trace be shown?
-#' @param traceLimit Numeric. How often should the trace be shown?
+#' @param trace_limit Numeric. How often should the trace be shown?
 #' @export
 resistance_given_week <- function(resistance_parameters, n_sims = 10000, burn_in = 1000, 
-                                  return_tibble = TRUE, trace = TRUE, traceLimit = 1000) {
+                                  return_tibble = TRUE, trace = TRUE, trace_limit = 1000) {
     if ((burn_in + 1) > n_sims) {
         n_sims = burn_in + 1
         warning("'n_sims' argument should be '1' larger than 'burn_in' argument, as all burn-in is discarded.")
@@ -372,7 +487,7 @@ resistance_given_week <- function(resistance_parameters, n_sims = 10000, burn_in
     gam_fit <- gam_parameter_fit(resistance_parameters)
     W <- resistance_parameters$W[1]:resistance_parameters$W[length(resistance_parameters$W)]
     
-    parameters <- predict(gam_fit, newdata = tibble(Week = W))
+    parameters <- predict(gam_fit, newdata = tibble(Time = W))
     parameter_matrix <- do.call("cbind", parameters) %>% as.matrix()
     
     res <- vector("list", length(W))
@@ -380,7 +495,7 @@ resistance_given_week <- function(resistance_parameters, n_sims = 10000, burn_in
         beta_w <- parameter_matrix[w, -4]
         sd_w <- parameter_matrix[w, 4]
         
-        res[[w]] <- resistance_of_given_week(beta_w, sd_w, n_sims, burn_in, trace, traceLimit, (resistance_parameters$W[1] - 1) + w)
+        res[[w]] <- BatteryPrognostics:::resistance_of_given_week(beta_w, sd_w, n_sims, burn_in, trace, trace_limit, (resistance_parameters$W[1] - 1) + w)
     }
     
     if (return_tibble) {
@@ -422,12 +537,12 @@ exact_week_probablity <- function(R, SOC, resistance_parameters) {
 #' 
 #' @param R A new resistance.
 #' @param resistance_parameters A matrix of estimated parameters constructed using \link{estimate_parameters_resistance_weeks}.
-#' @param SOC_dist Distribution of the SOC.
-#' @param ... Additional arguments passed to...
+#' @param SOC Distribution of the SOC.
+#' @param ... Additional arguments passed to the SOC distribution, If 'SOC' is a function.
 #' 
 #' @return A numeric vector of probabilities.
 #' @export
-week_probability <- function(R, resistance_parameters, SOC_dist = dunif, ...) {
+week_probability <- function(R, resistance_parameters, SOC = dunif, ...) {
     W <- resistance_parameters$W
     parameter_matrix <- resistance_parameters$Parameters
     
@@ -437,11 +552,11 @@ week_probability <- function(R, resistance_parameters, SOC_dist = dunif, ...) {
     }
     
     f <- function(x, w) {
-        if (class(SOC_dist) == "function") {
-            probability_soc <- SOC_dist(x, ...)
+        if (class(SOC) == "function") {
+            probability_soc <- SOC(x, ...)
         }
-        else if (class(SOC_dist) %in% "histogram") {
-            probability_soc <- SOC_dist$density[sapply(x, g, v = SOC_dist$mids)]
+        else if (class(SOC) %in% "histogram") {
+            probability_soc <- SOC$density[sapply(x, g, v = SOC$mids)]
         }
         
         beta_ = parameter_matrix[w, -n_cols]
@@ -622,7 +737,7 @@ ggplot.post_w <- function(object, ...) {
             obj_w <- obj %>% filter(Week >= hdr_1$Lower[i], Week <= hdr_1$Upper[i])
             
             obj_plot <- obj_plot + geom_ribbon(data = obj_w, 
-                                               aes(ymin = 0, ymax = Posterior), fill = "blue", alpha = "0.5", colour = "transparent")
+                                               aes(ymin = 0, ymax = Posterior), fill = "blue", alpha = 0.5, colour = "transparent")
         }
         
         obj_plot <- obj_plot + ggtitle(paste(100 * p, "% High posterior density region", sep = ""))
@@ -649,11 +764,11 @@ ggplot.post_w <- function(object, ...) {
 #' @param n_sims The number of samples generated by the MH.
 #' @param burn_in The number of initial samples removed as burn-in. 
 #' @param trace TRUE/FALSE: Should a trace be shown?
-#' @param traceLimit Numeric: How often should the trace be shown?
+#' @param trace_limit Numeric: How often should the trace be shown?
 #' 
 #' @return A numeric vector of probabilities.
 #' @export
-posterior_soc_probability <- function(R, W, resistance_parameters, burn_in, n_sims, trace, traceLimit) {
+posterior_soc_probability <- function(R, W, resistance_parameters, burn_in, n_sims, trace, trace_limit) {
     parameter_matrix <- resistance_parameters$Parameters
     sd <- mean(resistance_parameters$Parameters[, "sd"], na.rm = TRUE)
     table_W <- table(W)
@@ -675,7 +790,7 @@ posterior_soc_probability <- function(R, W, resistance_parameters, burn_in, n_si
     sampled_soc <- rep(NA, n_sims)
     sampled_soc[1] <- current_soc
     for (i in 2:n_sims) {
-        if (trace & ((i %% traceLimit) == 0))
+        if (trace & ((i %% trace_limit) == 0))
             cat("Iteration:", i, "/", sprintf("%i", n_sims), "\n")
         
         new_soc <- runif(1, 0, 1) # runif(1, max(current_soc - 0.1, 0), min(current_soc + 0.1, 1))
@@ -697,6 +812,48 @@ posterior_soc_probability <- function(R, W, resistance_parameters, burn_in, n_si
     return(post_prob)
 }
 
+soc_posterior_resistance_sample <- function(SOC, n_sims, n_ahead, R = NULL, W = NULL, 
+                                            dots = NULL, trace = NULL, trace_limit = NULL)  {
+    if (is.null(SOC)) {
+        if (is.null(R) || is.null(W)) {
+            stop("'SOC' was NULL and 'R' and 'W' were not provided.")
+        }
+        
+        if (length(R) != length(W)) {
+            stop("'SOC' was NULL and 'R' and 'W' were of different length.")
+        } 
+        
+        burn_in <- dots$burn_in
+        if (is.null(burn_in)) {
+            burn_in = 1000
+        }
+        
+        cat("Simulating posterior of 'SOC'.\n")
+        post_SOC <- posterior_soc_probability(R = R, W = W, resistance_parameters = resistance_parameters,
+                                              burn_in = burn_in, n_sims = n_sims, trace = trace, 
+                                              trace_limit = trace_limit)
+        
+        hist_SOC <- hist(post_SOC, breaks = "fd", plot = FALSE)
+        SOC_ <- sample_histogram(hist_SOC, n_sims * n_ahead)
+    }
+    else if ("post_soc" %in% class(SOC)) {
+        hist_SOC <- hist(SOC, breaks = "fd", plot = FALSE)
+        SOC_ <- sample_histogram(hist_SOC, n_sims * n_ahead)
+    }
+    else if("histogram" %in% class(SOC)) {
+        hist_SOC <- SOC
+        SOC_ <- sample_histogram(hist_SOC, n_sims * n_ahead)
+    }
+    else if (is.numeric(SOC) & ((length(SOC) == 1) || (length(SOC) == n_sims * n_ahead))) {
+        SOC_ <- SOC
+    }
+    else {
+        stop("Not a valid 'SOC' object.")
+    }
+    
+    return(SOC_)
+}
+
 #' @title Predict resistance
 #' 
 #' @description The posterior of the battery resistance
@@ -707,7 +864,7 @@ posterior_soc_probability <- function(R, W, resistance_parameters, burn_in, n_si
 #' @param R The extracted battery resistance.
 #' @param W The corresponding week of the extracted battery resistance.
 #' @param trace TRUE/FALSE: Show trace?
-#' @param traceLimit Limits the amount the trace is printed.
+#' @param trace_limit Limits the amount the trace is printed.
 #' @param equal_variance TRUE/FALSE: Is the variance assumed to be equal.
 #' @param return_tibble TRUE/FALSE: Should a tibble be returned? If 'FALSE', a matrix is returned.
 #' @param ... Additional information passed to 'SOC'.
@@ -715,8 +872,9 @@ posterior_soc_probability <- function(R, W, resistance_parameters, burn_in, n_si
 #' @return A matrix, or tibble, containing predictions of every simulation for every week. 
 #' @export
 posterior_resistance <- function(post_pred_var, resistance_parameters,
-                                 SOC = NULL, R = NULL, W = NULL,
-                                 trace = FALSE, traceLimit = 1000,
+                                 SOC = NULL, SOC_ahead = NULL, 
+                                 R = NULL, W = NULL,
+                                 trace = FALSE, trace_limit = 1000,
                                  equal_variance = FALSE, return_tibble = FALSE,
                                  ...) {
     dots <- list(...)
@@ -726,45 +884,21 @@ posterior_resistance <- function(post_pred_var, resistance_parameters,
     n_ahead <- dim(post_pred_var$Simulations[[1]])[1]
     n_sims <- length(post_pred_var$Simulations)
     
-    if (is.null(SOC)) {
-        if (is.null(R) || is.null(W)) {
-            stop("'SOC' was NULL and 'R' and 'W' were not provided.")
-        }
-        
-        if (length(R) != length(W)) {
-            stop("'SOC' was NULL and 'R' and 'W' were of different length.")
-        } 
-        
-        if (is.null(burn_in)) {
-            burn_in = 1000
-        }
-        else {
-            burn_in <- dots$burn_in
-            dots <- dots[-which(names(dots) == "burn_in")]
-        }
-        
-        cat("Simulating posterior of 'SOC'.\n")
-        post_SOC <- posterior_soc_probability(R = R, W = W, resistance_parameters = resistance_parameters,
-                                              burn_in = burn_in, n_sims = n_sims, trace = trace, 
-                                              traceLimit = traceLimit)
-        
-        hist_SOC <- hist(post_SOC, breaks = "fd", plot = FALSE)
-        SOC_ <- sample_histogram(hist_SOC, n_sims * (n_ahead + length(weeks)))
+    SOC_ <- soc_posterior_resistance_sample(SOC = SOC, 
+                                            n_sims = n_sims, n_ahead = length(weeks), 
+                                            R = R, W = W, dots = dots, 
+                                            trace = trace, trace_limit = trace_limit)
+    if (is.null(SOC_ahead)) {
+        SOC_ <- soc_posterior_resistance_sample(SOC = SOC, 
+                                                n_sims = n_sims, n_ahead = n_ahead, 
+                                                R = R, W = W, dots = dots, 
+                                                trace = trace, trace_limit = trace_limit)
     }
-    else if ("post_soc" %in% class(SOC)) {
-        hist_SOC <- hist(SOC, breaks = "fd", plot = FALSE)
-        SOC_ <- sample_histogram(hist_SOC, n_sims * (n_ahead + length(weeks)))
-    }
-    else if('histogram' %in% class(SOC)) {
-        hist_SOC <- SOC
-        SOC_ <- sample_histogram(hist_SOC, n_sims * (n_ahead + length(weeks)))
-    }
-    else if (is.numeric(SOC) & ((length(SOC) == 1) || (length(SOC) == n_sims * (n_ahead + length(weeks))))) {
-        SOC_ <- SOC
-    }
-    else if (is.function(SOC)) {
-        dots$n <- n_sims * n_ahead
-        SOC_ <- do.call(SOC, dots)
+    else {
+        SOC_ahead_ <- soc_posterior_resistance_sample(SOC = SOC_ahead, 
+                                                      n_sims = n_sims, n_ahead = n_ahead, 
+                                                      R = R, W = W, dots = dots, 
+                                                      trace = trace, trace_limit = trace_limit)
     }
     
     sd_ <- NULL
@@ -772,15 +906,22 @@ posterior_resistance <- function(post_pred_var, resistance_parameters,
         sd_ <- rep(mean(resistance_parameters$Parameters[, "sd"]), n_ahead + length(weeks))
     }
     
+    transform <- ifelse(equal_variance, identity, exp)
+    
     estimated_parameters <- resistance_parameters$Parameters
     parameter_simulations <- post_pred_var$Simulations
     par_names <- colnames(parameter_simulations[[1]])
     res <- matrix(NA, nrow = n_sims, ncol = length(weeks) + n_ahead)
-    for (i in 1:n_sims) {
+    for (i in seq_len(n_sims)) {
+        if (trace & ((i == 1) || (i == n_sims) || ((i %% trace_limit) == 0))) {
+            cat("Iteration:", i, "/", n_sims, "\n")
+        }
+        
         parameter_simulations_i <- rbind(estimated_parameters[, par_names], parameter_simulations[[i]])
         sd_i <- sd_
         if (is.null(sd_i) & ("sd" %in% par_names)) {
             sd_i <- parameter_simulations_i[, "sd"]
+            sd_i[(length(weeks) + 1):length(sd_i)] <- transform(sd_i[(length(weeks) + 1):length(sd_i)])
         }
         
         beta_0_i <- parameter_simulations_i[, "beta_0"]
@@ -791,9 +932,10 @@ posterior_resistance <- function(post_pred_var, resistance_parameters,
             beta_2_i <- parameter_simulations_i[, "beta_2"]
         }
         
-        SOC_i <- SOC_[((i - 1) * (n_ahead + length(weeks)) + 1):(i * (n_ahead + length(weeks)))]
+        SOC_i <- SOC_[((i - 1) * length(weeks) + 1):(i * length(weeks))]
+        SOC_ahead_i <- SOC_ahead_[((i - 1) * n_ahead + 1):(i * n_ahead)]
         expected_log_r <- BatteryPrognostics:::resistance_expected_vectorised(beta_0 = beta_0_i, beta_1 = beta_1_i, 
-                                                                              beta_2 = beta_2_i, SOC = SOC_i)
+                                                                              beta_2 = beta_2_i, SOC = c(SOC_i, SOC_ahead_i))
         res[i, ] <- rnorm(n_ahead + length(weeks), mean = expected_log_r, sd = sd_i)
     }
     
@@ -811,4 +953,3 @@ posterior_resistance <- function(post_pred_var, resistance_parameters,
     class(res_) <- c("post_r", class(res_))
     return(res_)
 }
-

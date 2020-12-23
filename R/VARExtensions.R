@@ -11,6 +11,8 @@ VAR_resistance_parameters_control <- function(p = 1, type = c("const", "trend", 
 #' @param resistance_parameters A list containing a vector of weeks and a matrix of estimated parameters constructed using \link{estimate_parameters_resistance_weeks}.
 #' @param ... Arguments passed to the \link{VAR}-function.
 #' 
+#' @details Note: The standard deviation is fitted on a log-scale to ensure that when predicting, we can take 'exp()' to get values > 0.
+#' 
 #' @return A \link{varest}-object.
 #' @export
 VAR_resistance_parameters <- function(resistance_parameters, ...) {
@@ -27,8 +29,12 @@ VAR_resistance_parameters <- function(resistance_parameters, ...) {
     input <- do.call("VAR_resistance_parameters_control", dots)
     
     parameter_names <- colnames(resistance_parameters$Parameters)
-    if ((!as.logical(resistance_parameters$BarlettsTest["Rejected"])) || equal_variance) {
+    if (equal_variance) {
         parameter_names <- parameter_names[-which(parameter_names == "sd")]
+    }
+    else {
+        resistance_parameters$Parameters[, which(parameter_names == "sd")] <- 
+            log(resistance_parameters$Parameters[, which(parameter_names == "sd")])
     }
     
     input$y <- resistance_parameters$Parameters[, parameter_names]
@@ -78,10 +84,14 @@ predict_posterior_VAR <- function(object, n_ahead = 1, n_sims = 10000) {
         }
         
         colnames(beta_ahead) <- col_names
+        
+        if ("sd" %in% names(object$varresult))
+            beta_ahead[, "sd"] <- beta_ahead[, "sd"]
+        
         res[[r]] <- beta_ahead
     }
     
-    res_list <- list(Simulations = res, Model = object)
+    res_list <- list(Simulations = res, Model = object, sd = "log-scale")
     class(res_list) <- "post_pred_varest"
     return(res_list)
 }
@@ -119,49 +129,66 @@ as_resistance_parameters.post_pred_varest <- function(object, ...) {
     
     res <- list("W" = c(original_W, pred_W), "Parameters" = rbind(original_data, pred_data), 
                 "BarlettsTest" = NA)
+    
+    if ("sd" %in% names(res$Parameters)) 
+        res$Parameters[, which(names(res$Parameters) == "sd")] <- exp(res$Parameters[, which(names(res$Parameters) == "sd")])
+    
     class(res) <- "resistance_parameters"
     return(res)
 }
 
-
-#' @export
-ggplot.post_pred_varest <- function(post_pred_var, ...) {
+summary_tibbles <- function(post_pred_var, ...) {
     dots <- list(...)
     
     K <- post_pred_var$Model$K
     W <- post_pred_var$Model$datamat[, dim(post_pred_var$Model$datamat)[2]]
     
-    obs_tibble <- post_pred_var$Model$y %>% 
-        as_tibble() %>% 
-        mutate(Week = 1:n()) %>% 
-        gather(ParameterName, Parameter, -Week)
-    
-    fitted_tibble <- fitted(post_pred_var$Model) %>% 
-        as_tibble() %>% 
-        mutate(Week = W) %>% 
-        gather(ParameterName, Parameter, -Week)
-    
     n_ahead <- dim(post_pred_var$Simulations[[1]])[1]
     pred_weeks <- (W[length(W)] + 1):(W[length(W)] + n_ahead)
-    pred_tibble <- lapply(post_pred_var$Simulations, function(xx) xx %>% as_tibble() %>% mutate(Week = pred_weeks)) %>% 
-        enframe(name = "Simulation", value = "Parameter") %>% 
-        unnest() %>% 
-        gather(ParameterName, Parameter, -Week, -Simulation) %>% 
-        group_by(Week, ParameterName) %>% 
-        summarise(LowerBound = quantile(Parameter, probs = c(0.025)), 
-                  UpperBound = quantile(Parameter, probs = c(0.975)), 
-                  Parameter = mean(Parameter))
     
     if (!is.null(dots$weeks) & ((length(dots$week) == 2) || (length(dots$week) == 1))) {
         weeks <- dots$weeks
         if (length(weeks) == 1) {
             weeks <- c(1, weeks)
         }
-        
-        obs_tibble <- obs_tibble %>% filter(Week >= weeks[1], Week <= weeks[2])
-        fitted_tibble <- fitted_tibble %>% filter(Week >= weeks[1], Week <= weeks[2])
-        pred_tibble <- pred_tibble %>% filter(Week >= weeks[1], Week <= weeks[2])
     }
+    else {
+        weeks <- c(1, max(pred_weeks))
+    }
+    
+    obs_tibble <- post_pred_var$Model$y %>% 
+        as_tibble() %>% 
+        mutate(Week = 1:n()) %>% 
+        gather(ParameterName, Parameter, -Week) %>% 
+        filter(Week >= weeks[1], Week <= weeks[2])
+    
+    fitted_tibble <- fitted(post_pred_var$Model) %>% 
+        as_tibble() %>% 
+        mutate(Week = W) %>% 
+        gather(ParameterName, Parameter, -Week) %>% 
+        filter(Week >= weeks[1], Week <= weeks[2])
+    
+    pred_weeks_ <- which((pred_weeks >= weeks[1]) & (pred_weeks <= weeks[2]))
+    pred_tibble <- lapply(post_pred_var$Simulations, function(xx) { 
+        xx[pred_weeks_, ] %>% as.data.frame() %>% mutate(Week = pred_weeks[pred_weeks_])
+    }) %>% bind_rows() %>% 
+        gather(ParameterName, Parameter, -Week) %>% 
+        group_by(Week, ParameterName) %>% 
+        summarise(LowerBound = quantile(Parameter, probs = c(0.025)), 
+                  UpperBound = quantile(Parameter, probs = c(0.975)), 
+                  Parameter = mean(Parameter))
+    
+    return(list(O = obs_tibble, F = fitted_tibble, P = pred_tibble))
+}
+
+#' @export
+ggplot.post_pred_varest <- function(post_pred_var, ...) {
+    
+    s_tibbles <- summary_tibbles(post_pred_var, ...)
+    
+    obs_tibble <- s_tibbles$O
+    fitted_tibble <- s_tibbles$F
+    pred_tibble <- s_tibbles$P
     
     new_labels <- as_labeller(c(beta_0 = "beta[0]", beta_1 = "beta[1]", beta_2 = "beta[2]", sd = "Standard~deviation"), 
                               label_parsed)

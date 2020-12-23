@@ -1,3 +1,12 @@
+rbeta_mv <- function(n, m = 0.5, v = 0.5) {
+    if (v >= m * (1 - m)) 
+        stop("'v' has to be smaller than 'm * (1 - m)'.")
+    
+    alpha <- ((1 - m) / v - 1 / m) * m ^ 2
+    beta <- alpha * (1 / m - 1)
+    rbeta(n, shape1 = alpha, shape2 = beta)
+}
+
 mode_density <- function(x, na.rm = FALSE, ...) {
     if(na.rm){
         x = x[!is.na(x)]
@@ -15,6 +24,7 @@ mode_density <- function(x, na.rm = FALSE, ...) {
 #' @param I Vector containing the current.
 #' @param V Vector containing the voltage.
 #' @param T_s Vector containing the time step sizes (in seconds). If 'NULL' it is set as 'seq_along(I)'.
+#' @param SOC Vector containing the SOC. If 'NULL' it is estimated by Columb counting, using the parameter 'SOC_0' as a starting point.
 #' @param epsilon The lower limit used for identifying change in current. Default is '1e-3'.
 #' @param Q_max The maximal capacity of the battery cell.
 #' @param eta The Coulombic effeciency.
@@ -23,7 +33,8 @@ mode_density <- function(x, na.rm = FALSE, ...) {
 #'
 #' @return A list containing the extracted resistance and their time scales extracted from the profile.
 #' @export
-extract_resistance <- function(I, V, T_s = NULL, epsilon = 1e-3, Q_max = 2.56, eta = 1.0, SOC_0 = 0.0, 
+extract_resistance <- function(I, V, T_s = NULL, SOC = NULL, 
+                               epsilon = 1e-3, Q_max = 2.56, eta = 1.0, SOC_0 = 0.0, 
                                convert_to_tibble = FALSE) { 
     if (is.null(I) | is.null(V)) {
         stop("Both 'I' and 'V' has to be provided.")
@@ -42,6 +53,7 @@ extract_resistance <- function(I, V, T_s = NULL, epsilon = 1e-3, Q_max = 2.56, e
     
     if (convert_to_tibble) {
         res_tibble <- as_tibble(res_matrix)
+        
         data_tibble <- tibble("I" = I, "V" = V, "T_s" = T_s) %>% 
             bind_cols(res_tibble) %>% 
             group_by(ID) %>% 
@@ -50,8 +62,11 @@ extract_resistance <- function(I, V, T_s = NULL, epsilon = 1e-3, Q_max = 2.56, e
             mutate("Day" = floor(T_s / 3600 / 24)) %>% 
             group_by(ID, NonZero) %>% 
             mutate(Relax = 1:n()) %>% 
-            ungroup() %>% 
-            mutate(Relax = ifelse(NonZero > -1, -1, Relax))
+            ungroup()# %>% mutate(Relax = ifelse(NonZero > -1, -1, Relax))
+        
+        if (!is.null(SOC)) {
+            data_tibble$SOC <- SOC
+        }
         
         data_tibble$Relax[which(data_tibble$S == 0)] <- 
             data_tibble$Relax[which(data_tibble$S == 0) - 1] 
@@ -75,7 +90,7 @@ extract_resistance <- function(I, V, T_s = NULL, epsilon = 1e-3, Q_max = 2.56, e
 
 #' @export
 as_tibble.ext_res <- function(x, ...) {
-    res_tibble <-x[1:2] %>% enframe() %>%
+    res_tibble <- x[1:2] %>% enframe() %>%
         unnest() %>%
         group_by(name) %>%
         mutate(TT = 1:n()) %>%
@@ -84,7 +99,10 @@ as_tibble.ext_res <- function(x, ...) {
         mutate(SOC = x$SOC,
                ID = x$ID, 
                NonZero = x$NonZero, 
-               Reset = x$Reset) 
+               Reset = x$Reset, 
+               ZeroUpdate = x$ZeroUpdate, 
+               Vscale = x$V_scale, 
+               Iscale = x$I_scale) 
     
     return(res_tibble)
 }
@@ -107,8 +125,10 @@ as_tibble.ext_res <- function(x, ...) {
 #'
 #' @return ggplot-object.
 #' @export
-plot_extracted_resistance <- function(ext_res_tibble, restrict_dim_y = NULL, include_marginals = TRUE, include_current = TRUE,
-                                      dims = c("SOC", "R"), dim_labels = c(expression("SOC [%]"), expression(paste("R", " [", Omega, "]"))),
+plot_extracted_resistance <- function(ext_res_tibble, restrict_dim_y = NULL, 
+                                      include_marginals = TRUE, include_current = TRUE,
+                                      dims = c("SOC", "R"), 
+                                      dim_labels = c(expression("SOC [%]"), expression(paste("R", " [", Omega, "]"))),
                                       facet_variable = NULL, plot_type = "hex", n_bins = NULL) {
     if (length(dims) == 0) {
         dims <- c("SOC", "R")
@@ -191,8 +211,7 @@ plot_extracted_resistance <- function(ext_res_tibble, restrict_dim_y = NULL, inc
     
     if (length(dim_labels) == 1) {
         p <- p + ylab(dim_labels)
-    } 
-    else if (length(dim_labels) == 2) {
+    } else if (length(dim_labels) == 2) {
         p <- p + xlab(dim_labels[1]) + ylab(dim_labels[2])
     }
     
@@ -204,8 +223,7 @@ plot_extracted_resistance <- function(ext_res_tibble, restrict_dim_y = NULL, inc
         p <- ggMarginal(p, type = "density",
                         xparams = list(fill = "grey"),
                         yparams = list(fill = "grey"))
-    }
-    else if (!is.null(facet_variable)) {
+    } else if (!is.null(facet_variable)) {
         p <- p + facet_wrap(as.formula(paste("~", facet_variable)), nrow = 1)
     }
     
@@ -323,8 +341,8 @@ tail.resistance_parameters <- function(x, ...) {
 
 #' @export
 as_tibble.resistance_parameters <- function(x, ...) {
-    res <- cbind(Week = x$W, x$Parameters) %>% as_tibble() %>% 
-        gather(ParameterName, Parameter, -Week)
+    res <- cbind(Time = x$W, x$Parameters) %>% as_tibble() %>% 
+        gather(ParameterName, Parameter, -Time)
     
     return(res)
 }
@@ -371,15 +389,23 @@ sample_histogram <- function(x, size = 1) {
 }
 
 #' @export
-ggplot.histogram <- function(xhist, freq = FALSE, density = TRUE, xlab = "", ylab = NULL) {
+ggplot.histogram <- function(xhist, freq = FALSE, density = TRUE, 
+                             xlab = "", ylab = NULL, 
+                             colour = NULL, fill = NULL) {
     cc <- xhist$density
     if (freq || !density) {
         cc <- xhist$counts
     }
+    if (is.null(colour)) {
+        colour <- "black"
+    }
+    if (is.null(fill)) {
+        fill <- "white"
+    }
     
     bin_widths <- mean(diff(xhist$mids))
     ggplot(data.frame(x = xhist$mids, y = cc), aes(x = x, y = y)) + 
-        geom_bar(stat = "identity", width = bin_widths - 0.002, colour = "black", fill = "white") + 
+        geom_bar(stat = "identity", width = bin_widths - 0.002, colour = colour, fill = fill) + 
         #scale_x_continuous(breaks = seq(0, 1, 0.2)) + 
         xlab(xlab) + ylab(ifelse(is.null(ylab), ifelse(freq, "Count", "Density"), ylab)) + 
         theme_bw()
@@ -396,18 +422,25 @@ ggplot.histogram <- function(xhist, freq = FALSE, density = TRUE, xlab = "", yla
 #' @param V1 Numeric vector of length 'T1'.
 #' @param V2 Numeric vector of length 'T2'.
 #' @param W Scalar: the window size.
+#' @param W_extension Scalar: search window for 'I2' / 'V2' when compared to 'I1' / 'V1'.
 #' @param R Scalar: the maximum allowed number of place the two windows exceed epsilon.
 #' @param epsilon Tolerance used when comparing windows of 'I1' and 'I2'.
-#' @param delta Tolerance used when comparing the initial index of the window in 'SOC1' and 'SOC2'.
+#' @param delta Tolerance used when comparing the initial index of the window in 'V1' and 'V2'.
+#' @param extension_type String: which type of window extension should be used (see details for allowed types)?
 #' @param trace TRUE/FLASE: Show trace?
 #' @param trace_limit Scalar: Limit the trace shown to 'trace_limit'.
 #' @param return_tibble TRUE/FALSE: Should a tibble be returned?
 #' 
-#' @details No default values are used for 'W', 'epsilon', or 'delta' as the choise of e.g. 'epsilon' and 'delta' are heavily dependent on the scale of the 'Is' and the 'SOCs'. Furthermore, the 'SOCs' are needed to reduce the amount of "relevant" information, otherwise the method will run out of memory quickly.
+#' @details No default values are used for 'W', 'epsilon', or 'delta' as the choise of e.g. 'epsilon' and 'delta' are heavily dependent on the scale of the 'I' and 'V' vectors.
+#' 
+#' At the moment the function allows for two types of window extension: 'voltage' and 'current'. 
+#' The 'voltage' type tries to match the voltage at the end of each window in the second data set to the first data set by adjusting the size of the window in the former. While the 'current' type tries to extend both windows as much as possible while keeping the difference in the current between the set limits.
+#' The 'voltage' type is default.
 #'
 #' @return Either a list of lists, or a \link{tibble}.
 #' @export
-compare_windows <- function(I1, I2, V1, V2, W, R, epsilon, delta, trace = TRUE, trace_limit = 10000, return_tibble = TRUE) {
+compare_windows <- function(I1, I2, V1, V2, W, W_extension, R, epsilon, delta, extension_type = "voltage", 
+                            trace = TRUE, trace_limit = 10000, return_tibble = TRUE) {
     if (length(I1) != length(V1)) {
         stop("'I1' and 'V1' must have the same length.")
     }
@@ -431,12 +464,349 @@ compare_windows <- function(I1, I2, V1, V2, W, R, epsilon, delta, trace = TRUE, 
         epsilon <- epsilon[1:2]
     }
     
-    system.time({
-        res <- BatteryPrognostics:::compare_windows_cpp(I1, I2, V1, V2, W, R, epsilon, delta, trace, trace_limit)
-    })
+    if (nchar(extension_type) < 2) {
+        stop("'extension_type' needs more information to determine type.")
+    }
+    else {
+        extension_type_ <- agrep(extension_type, c("current", "voltage"), value = TRUE, ignore.case = TRUE)
+    }
+    
+    delta_ <- delta * max(c(V1, V2))
+    
+    #
+    res <- BatteryPrognostics:::compare_windows_raw_cpp(I1, I2, V1, V2, W, R, epsilon, delta_, trace, trace_limit)
+    # res_ <- res
+    # res <- res_
+    
+    #
+    if ((length(which(res$S1 >= 0)) == 0) || (length(which(res$S2 >= 0)) == 0)) {
+        if (return_tibble) {
+            return(tibble(CurrentError = numeric(0), VoltageError = numeric(0),
+                          S1 = numeric(0), W1 = numeric(0), I1 = numeric(0), V1 = numeric(0),
+                          S2 = numeric(0), W2 = numeric(0), I2 = numeric(0), V2 = numeric(0)))
+        }
+        else {
+            return(list(CurrentError = numeric(0), VoltageError = numeric(0),
+                        S1 = numeric(0), W1 = numeric(0), S2 = numeric(0), W2 = numeric(0)))
+        }
+    }
+    
+    ## Cleaning...
+    ## Remove '-1' indecies... 
+    index_keep <- which(res$S1 >= 0)
+    res$CurrentError <- res$CurrentError[index_keep]
+    res$VoltageError <- res$VoltageError[index_keep]
+    res$S1 <- res$S1[index_keep]
+    res$S2 <- res$S2[index_keep]
+    
+    ## 
+    non_zero_change_S1 <- which(abs(diff(c(-2, res$S1))) > 0)
+    res$CurrentError <- res$CurrentError[non_zero_change_S1]
+    res$VoltageError <- res$VoltageError[non_zero_change_S1]
+    res$S1 <- res$S1[non_zero_change_S1]
+    res$S2 <- res$S2[non_zero_change_S1]
+    
+    ##
+    diff_s2 <- abs(diff(c(-2, res$S2)))
+    res$CurrentError <- res$CurrentError[(diff_s2 > 1)]
+    res$VoltageError <- res$VoltageError[(diff_s2 > 1)]
+    res$S1 <- res$S1[(diff_s2 > 1)]
+    res$S2 <- res$S2[(diff_s2 > 1)]
+    
+    W1 <- unname(sapply(split(seq_len(length(diff_s2)), cumsum(diff_s2 > 1)), function(xx) {
+        rle_ <- rle(abs(diff_s2[xx][-1]))
+        if (!is.na(rle_$lengths[which(rle_$values == 1)[1]])) {
+            return(W + rle_$lengths[which(rle_$values == 1)[1]])
+        }
+        else {
+            return(W)
+        }
+    }))
+    
+    W2 <- unname(sapply(split(1:length(diff_s2), cumsum(diff_s2 > 1)), function(xx) {
+        rle_ <- rle(abs(diff_s2[xx][-1]))
+        if (!is.na(rle_$lengths[which(rle_$values == 1)[1]])) {
+            return(W + rle_$lengths[which(rle_$values == 1)[1]])
+        }
+        else {
+            return(W)
+        }
+    }))
+    
+    non_overlap <- 1
+    for (i in seq_along(W2)[-1]) {
+        if ((res$S2[non_overlap] + W2[non_overlap]) > res$S2[i]) {
+            W1[i] <- NA
+            W2[i] <- NA
+        }
+        else  {
+            non_overlap = i
+        }
+    }
+    
+    ## 
+    res$CurrentError <- res$CurrentError[!is.na(W1)]
+    res$VoltageError <- res$VoltageError[!is.na(W2)]
+    res$S1 <- res$S1[!is.na(W1)]
+    res$S2 <- res$S2[!is.na(W2)]
+    res$W1 <- W1[!is.na(W1)]
+    res$W2 <- W2[!is.na(W2)]
+    
+    ## 
+    if (extension_type_ == "voltage") {
+        W1_search_area <- seq(-W_extension, W_extension, 1)
+        window_extensions_error <- matrix(NA, nrow = length(res$S1), ncol = length(W1_search_area))
+        for (i in seq_along(W1_search_area)) {
+            window_extensions_error[, i] <- abs(V1[res$S1 + res$W1 + W1_search_area[i] + 1] - V2[res$S2 + res$W2 + 1])
+        }
+        
+        W1 <- W1_search_area[apply(window_extensions_error, 1, which.min)]
+        voltage_end_keep <- which((abs(V1[res$S1 + res$W1 + W1 + 1] - V2[res$S2  + res$W2 + 1])) < delta)
+        
+        res$E1 <- res$S1[voltage_end_keep] + (res$W1 + W1)[voltage_end_keep] + 1
+        res$E2 <- res$S2[voltage_end_keep] + res$W2[voltage_end_keep] + 1
+        res$VoltageErrorEnd <- abs(V1[res$S1 + res$W1 + W1 + 1] - V2[res$S2  + res$W2 + 1])[voltage_end_keep]
+        
+        res$CurrentError <- res$CurrentError[voltage_end_keep]
+        res$VoltageError <- res$VoltageError[voltage_end_keep]
+        res$S1 <- res$S1[voltage_end_keep]
+        res$S2 <- res$S2[voltage_end_keep]
+        res$W1 <- (res$W1 + W1)[voltage_end_keep]
+        res$W2 <- res$W2[voltage_end_keep]
+        
+        if (return_tibble) {
+            res <- res %>% 
+                enframe() %>% 
+                spread(name, value) %>% 
+                unnest() %>% 
+                select(CurrentError, VoltageError, VoltageErrorEnd, S1, W1, E1, S2, W2, E2)
+        }
+    }
+    else {
+        current_search_area <- seq(1, W_extension, 1) 
+        number_of_unique_windows <- dim(do.call("rbind", res))[2]
+        for (k in seq_len(number_of_unique_windows)) {
+            S1_k <- res$S1[k]
+            S2_k <- res$S2[k]
+            
+            W1_k <- res$W1[k]
+            W2_k <- res$W2[k]
+            
+            if (k < number_of_unique_windows) {
+                no_overlap_index <- res$S2[k + 1]
+            }
+            else {
+                no_overlap_index <- length(I2)
+            }
+            
+            which_overlap_index <- which((S2_k + W2_k + current_search_area) < no_overlap_index)
+            if (length(which_overlap_index) == 0) {
+                current_search_area_k <- current_search_area
+            }
+            else {
+                current_search_area_k <- current_search_area[which_overlap_index] 
+            }
+            
+            abs_percentage_difference <- abs((I1[S1_k + W1_k + current_search_area_k] - I2[S2_k + W2_k + current_search_area_k]) / I1[S1_k + W1_k + current_search_area_k])
+            current_violation <- which(!(abs_percentage_difference < epsilon[1]))
+            if (length(current_violation) > 0) {
+                W_e <- current_violation[1] - 1
+            }
+            else {
+                W_e <- current_search_area_k[length(current_search_area_k)]
+            }
+            
+            res$W1[k] <- res$W1[k] + W_e
+            res$W2[k] <- res$W2[k] + W_e
+        }
+        
+        if (return_tibble) {
+            T1 = length(I1)
+            T2 = length(I2)
+            res <- res %>% 
+                enframe() %>% 
+                spread(name, value) %>% 
+                unnest() %>% 
+                mutate(S1 = S1 + 1, S2 = S2 + 1,
+                       V1_ = V1[S1], V2_ = V2[S2], 
+                       DeltaV1 = V1_ - V1[S1 + W1], 
+                       DeltaV2 = V2_ - V2[S2 + W2], 
+                       T1 = T1, 
+                       T2 = T2) %>% 
+                group_by(S2) %>% 
+                mutate(I1 = sum(I1[S1:(S1 + W1)]), I2 = sum(I2[S2:(S2 + W2)])) %>% 
+                ungroup() %>% 
+                select(CurrentError, VoltageError, S1, W1, I1, V1 = V1_, DeltaV1, T1, S2, W2, I2, V2 = V2_, DeltaV2, T2)
+        }
+    }
+    
+    return(res)
+}
+
+#' @title Compare windows limited
+#' 
+#' @description Compare windows, with size W, of two vectors, 'I1' and 'I2', with the added requirement that starting index of the windows being compared of two other vectors 'SOC1' and 'SOC2' are within some tolerance 'delta'. The windows are compared by counting the number of indices where they differ more than some tolerance epsilon. Limited for the first series ('I1'/'V1') to the indicies provided by 'RI1'.
+#' 
+#' @param I1 Numeric vector of length 'T1'.
+#' @param I2 Numeric vector of length 'T2'.
+#' @param V1 Numeric vector of length 'T1'.
+#' @param V2 Numeric vector of length 'T2'.
+#' @param RI2 Numeric vector limiting the available windows in 'I2'/'V2'.
+#' @param W2 Numeric vector of window sizes for 'I2'/'V2'. Needs the same length as 'RT2'.
+#' @param W Scalar: the window size.
+#' @param W_extension Scalar: search window for 'I2' / 'V2' when compared to 'I1' / 'V1'.
+#' @param R Scalar: the maximum allowed number of place the two windows exceed epsilon.
+#' @param epsilon Tolerance used when comparing windows of 'I1' and 'I2'.
+#' @param delta Tolerance used when comparing the initial index of the window in 'SOC1' and 'SOC2'.
+#' @param trace TRUE/FLASE: Show trace?
+#' @param trace_limit Scalar: Limit the trace shown to 'trace_limit'.
+#' @param return_tibble TRUE/FALSE: Should a tibble be returned?
+#' 
+#' @details No default values are used for 'W', 'epsilon', or 'delta' as the choise of e.g. 'epsilon' and 'delta' are heavily dependent on the scale of the 'Is' and the 'SOCs'. Furthermore, the 'SOCs' are needed to reduce the amount of "relevant" information, otherwise the method will run out of memory quickly.
+#'
+#' @return Either a list of lists, or a \link{tibble}.
+#' @export
+compare_windows_limited <- function(I1, I2, V1, V2, RI2, W2, W, W_extension, R, epsilon, delta, 
+                                    trace = TRUE, trace_limit = 10000, return_tibble = TRUE) {
+    if (length(I1) != length(V1)) {
+        stop("'I1' and 'V1' must have the same length.")
+    }
+    
+    if (length(I2) != length(V2)) {
+        stop("'I2' and 'V2' must have the same length.")
+    }
+    
+    if (length(RI2) != length(W2)) {
+        stop("'RI2' and 'W2' must have the same length.")
+    }
+    
+    if ((W > length(I1)) || (W > length(I2))) {
+        stop("The window size, 'W', should be smaller both 'I1'/'V1' and 'I2'/'V2'.")
+    }
+    
+    if (R > W) {
+        stop("'R' should be smaller than, or equal to, 'W'.́")
+    }
+    
+    if (length(epsilon) == 1) {
+        epsilon <- rep(epsilon, 2)
+    }
+    else if (length(epsilon) > 2) {
+        epsilon <- epsilon[1:2]
+    }
+    
+    res <- BatteryPrognostics:::compare_windows_single_cpp(I1, I2, V1, V2, RI2, 
+                                                           W2, W, R, epsilon, delta, 
+                                                           trace, trace_limit)
+    
+    res$W2 <- W2
+    
+    ## Cleaning...
+    ## Remove '-1' indecies... 
+    index_keep <- which(res$S1 >= 0)
+    if (length(index_keep) == 0) {
+        res$CurrentError <- res$CurrentError[index_keep]
+        res$VoltageError <- res$VoltageError[index_keep]
+        res$S1 <- res$S1[index_keep]
+        res$S2 <- res$S2[index_keep]
+        res$W1 <- numeric(0)
+        res$W2 <- res$W2[index_keep]
+        res$E1 <- numeric(0)
+        res$E2 <- numeric(0)
+        res$VoltageErrorEnd <- numeric(0)
+    }
+    else {
+        res$CurrentError <- res$CurrentError[index_keep]
+        res$VoltageError <- res$VoltageError[index_keep]
+        res$S1 <- res$S1[index_keep]
+        res$S2 <- res$S2[index_keep]
+        res$W2 <- res$W2[index_keep]
+        
+        ## 
+        non_zero_change_S1 <- which(abs(diff(c(-1, res$S1))) > 0)
+        res$CurrentError <- res$CurrentError[non_zero_change_S1]
+        res$VoltageError <- res$VoltageError[non_zero_change_S1]
+        res$S1 <- res$S1[non_zero_change_S1]
+        res$S2 <- res$S2[non_zero_change_S1]
+        res$W2 <- res$W2[non_zero_change_S1]
+        
+        ##
+        diff_s1 <- abs(diff(c(-1, res$S1)))
+        diff_s2 <- abs(diff(c(-1, res$S2)))
+        res$CurrentError <- res$CurrentError[(diff_s1 > 1) & (diff_s2 > 1)]
+        res$VoltageError <- res$VoltageError[(diff_s1 > 1) & (diff_s2 > 1)]
+        res$S1 <- res$S1[(diff_s1 > 1) & (diff_s2 > 1)]
+        res$S2 <- res$S2[(diff_s1 > 1) & (diff_s2 > 1)]
+        res$W2 <- res$W2[(diff_s1 > 1) & (diff_s2 > 1)]
+        
+        W1 <- unname(sapply(split(1:length(diff_s2), cumsum((diff_s1 > 1) & (diff_s2 > 1))), function(xx) {
+            rle_ <- rle(abs(diff_s1[xx][-1]))
+            if (!is.na(rle_$lengths[which(rle_$values == 1)[1]])) {
+                return(W + rle_$lengths[which(rle_$values == 1)[1]])
+            }
+            else {
+                return(W)
+            }
+        }))
+        
+        W2 <- res$W2
+        # W2 <- unname(sapply(split(1:length(diff_s2), cumsum((diff_s1 > 1) & (diff_s2 > 1))), function(xx) {
+        #     rle_ <- rle(abs(diff_s1[xx][-1]))
+        #     if (!is.na(rle_$lengths[which(rle_$values == 1)[1]])) {
+        #         return(W + rle_$lengths[which(rle_$values == 1)[1]])
+        #     }
+        #     else {
+        #         return(W)
+        #     }
+        # }))
+        
+        non_overlap <- 1
+        for (i in seq_along(W1)[-1]) {
+            if ((res$S2[non_overlap] + W2[non_overlap]) > res$S2[i]) {
+                W1[i] <- NA
+                W2[i] <- NA
+            }
+            else  {
+                non_overlap = i
+            }
+        }
+        
+        ## 
+        res$CurrentError <- res$CurrentError[!is.na(W1)]
+        res$VoltageError <- res$VoltageError[!is.na(W2)]
+        res$S1 <- res$S1[!is.na(W1)]
+        res$S2 <- res$S2[!is.na(W2)]
+        res$W1 <- W1[!is.na(W1)]
+        res$W2 <- W2[!is.na(W2)]
+        
+        ## 
+        W1_search_area <- seq(-W_extension, W_extension, 1)
+        window_extensions_error <- matrix(NA, nrow = length(res$S1), ncol = length(W1_search_area))
+        for (i in seq_along(W1_search_area)) {
+            window_extensions_error[, i] <- abs(V1[res$S1 + res$W1 + W1_search_area[i] + 1] - V2[res$S2 + res$W2 + 1])
+        }
+        
+        W1 <- W1_search_area[apply(window_extensions_error, 1, which.min)]
+        voltage_end_keep <- which((abs(V1[res$S1 + res$W1 + W1 + 1] - V2[res$S2  + res$W2 + 1])) < delta)
+        
+        res$E1 <- res$S1[voltage_end_keep] + (res$W1 + W1)[voltage_end_keep] + 1
+        res$E2 <- res$S2[voltage_end_keep] + res$W2[voltage_end_keep] + 1
+        res$VoltageErrorEnd <- abs(V1[res$S1 + res$W1 + W1 + 1] - V2[res$S2  + res$W2 + 1])[voltage_end_keep]
+        
+        res$CurrentError <- res$CurrentError[voltage_end_keep]
+        res$VoltageError <- res$VoltageError[voltage_end_keep]
+        res$S1 <- res$S1[voltage_end_keep]
+        res$S2 <- res$S2[voltage_end_keep]
+        res$W1 <- (res$W1 + W1)[voltage_end_keep]
+        res$W2 <- res$W2[voltage_end_keep]
+    }
     
     if (return_tibble) {
-        res <- tibble() 
+        res <- res %>% 
+            enframe() %>% 
+            spread(name, value) %>% 
+            unnest() %>% 
+            select(CurrentError, VoltageError, VoltageErrorEnd, S1, W1, E1, S2, W2, E2)
     }
     
     return(res)

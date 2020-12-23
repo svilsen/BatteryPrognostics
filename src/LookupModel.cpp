@@ -7,7 +7,7 @@ private :
     
     std::vector<arma::mat> Rk, Ck;
     
-    int unsigned N, K, N_SOC, N_I, traceLimit;
+    int unsigned N, K, N_SOC, N_I, trace_limit;
     double dt;
     bool trace;
     
@@ -58,9 +58,9 @@ public :
                 const std::vector<arma::mat> & Ck_, const arma::mat & OCV_, 
                 const arma::colvec & I_, const arma::colvec & IF_, const arma::colvec & IC_, 
                 const double & dt_, const double & SOC_, const arma::colvec & SOCList_, const arma::colvec IList_, 
-                const bool & trace_, const unsigned int & traceLimit_) : 
+                const bool & trace_, const unsigned int & trace_limit_) : 
         Cap(Cap_), R0(R0_), Rk(Rk_), Ck(Ck_), K(Rk.size()), OCV(OCV_), I(I_), IF(IF_), IC(IC_), N(I.size()), dt(dt_), 
-        SOCList(SOCList_), IList(IList_), N_SOC(SOCList.size()), N_I(IList.size()), trace(trace_), traceLimit(traceLimit_)
+        SOCList(SOCList_), IList(IList_), N_SOC(SOCList.size()), N_I(IList.size()), trace(trace_), trace_limit(trace_limit_)
     { 
         T_hat = arma::zeros(N / dt);
         V_hat = arma::zeros(N / dt);
@@ -77,7 +77,7 @@ public :
         T_hat[0] = 0.0;
         for (unsigned int n = 0; n < N / dt - 1; n++) 
         {
-            if (trace & ((n == 0) | (n == (N / dt - 2)) | (((n + 1) % traceLimit) == 0))) {
+            if (trace & ((n == 0) | (n == (N / dt - 2)) | (((n + 1) % trace_limit) == 0))) {
                 Rcpp::Rcout << "Iteration: " << n + 1 << " / " << (N / dt - 1) << "\n";
             }
             
@@ -139,9 +139,9 @@ public :
 Rcpp::List RCKCpp(const arma::colvec & I, const arma::colvec & IC, const arma::colvec & IF,
                   const arma::mat & R0, const std::vector<arma::mat> & Rk, const std::vector<arma::mat> & Ck,
                   const arma::mat & Cap, const arma::mat & OCV, const arma::colvec SOCList, const arma::colvec IList, 
-                  const double & dt, const double & SOCStart, const bool & trace, const unsigned int & traceLimit) 
+                  const double & dt, const double & SOCStart, const bool & trace, const unsigned int & trace_limit) 
 {
-    LookupModel LM(Cap, R0, Rk, Ck, OCV, I, IF, IC, dt, SOCStart, SOCList, IList, trace, traceLimit);
+    LookupModel LM(Cap, R0, Rk, Ck, OCV, I, IF, IC, dt, SOCStart, SOCList, IList, trace, trace_limit);
     LM.SimulateModel();
     
     return Rcpp::List::create(Rcpp::Named("V_hat") = LM.V_hat, 
