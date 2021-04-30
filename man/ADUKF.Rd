@@ -4,8 +4,21 @@
 \alias{ADUKF}
 \title{Filtering of state-of-charge and health.}
 \usage{
-ADUKF(I, V, Temp, Time, ocv_0, theta_0, SOC_0 = 0, K = 1, sigma_0 = NULL,
-  R_X = NULL, R_V = NULL, trace = TRUE, traceLimit = 1e+06)
+ADUKF(
+  I,
+  V,
+  Temp,
+  Time,
+  ocv_0,
+  theta_0,
+  SOC_0 = 0,
+  K = 1,
+  sigma_0 = NULL,
+  R_X = NULL,
+  R_V = NULL,
+  trace = TRUE,
+  trace_limit = 1e+06
+)
 }
 \arguments{
 \item{I}{A current profile.}
@@ -32,7 +45,7 @@ ADUKF(I, V, Temp, Time, ocv_0, theta_0, SOC_0 = 0, K = 1, sigma_0 = NULL,
 
 \item{trace}{TRUE/FALSE: Show trace?}
 
-\item{traceLimit}{Used to limit trace.}
+\item{trace_limit}{Used to limit trace.}
 }
 \value{
 A list containing the voltage, the filtered voltage, the SOC, the polarisation voltage, and the state variance.

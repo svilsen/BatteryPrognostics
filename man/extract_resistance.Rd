@@ -4,8 +4,17 @@
 \alias{extract_resistance}
 \title{Extract resistance}
 \usage{
-extract_resistance(I, V, T_s = NULL, SOC = NULL, epsilon = 0.001,
-  Q_max = 2.56, eta = 1, SOC_0 = 0, convert_to_tibble = FALSE)
+extract_resistance(
+  I,
+  V,
+  T_s = NULL,
+  SOC = NULL,
+  epsilon = 0.001,
+  Q_max = 2.56,
+  eta = 1,
+  SOC_0 = 0,
+  convert_to_tibble = FALSE
+)
 }
 \arguments{
 \item{I}{Vector containing the current.}

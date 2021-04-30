@@ -4,8 +4,11 @@
 \alias{resistance_parameters_interpolate}
 \title{Interpolate 'resistance_parameters'}
 \usage{
-resistance_parameters_interpolate(resistance_parameters, smooth = FALSE,
-  limits = NULL)
+resistance_parameters_interpolate(
+  resistance_parameters,
+  smooth = FALSE,
+  limits = NULL
+)
 }
 \arguments{
 \item{resistance_parameters}{A list containing a vector of weeks and a matrix of estimated parameters constructed using \link{estimate_parameters_resistance_weeks}.}

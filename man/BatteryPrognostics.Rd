@@ -3,7 +3,6 @@
 \docType{package}
 \name{BatteryPrognostics}
 \alias{BatteryPrognostics}
-\alias{BatteryPrognostics-package}
 \title{Battery Prognostics}
 \description{
 State-space model used for filtering and prediction of the state-of-charge and the state-of-health of Li-ion batteries by voltage given current and temperature.

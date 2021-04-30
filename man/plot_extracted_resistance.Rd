@@ -4,10 +4,17 @@
 \alias{plot_extracted_resistance}
 \title{2d-density plot of the extracted resistance}
 \usage{
-plot_extracted_resistance(ext_res_tibble, restrict_dim_y = NULL,
-  include_marginals = TRUE, include_current = TRUE, dims = c("SOC", "R"),
-  dim_labels = c(expression("SOC [\%]"), expression(paste("R", " [", Omega,
-  "]"))), facet_variable = NULL, plot_type = "hex", n_bins = NULL)
+plot_extracted_resistance(
+  ext_res_tibble,
+  restrict_dim_y = NULL,
+  include_marginals = TRUE,
+  include_current = TRUE,
+  dims = c("SOC", "R"),
+  dim_labels = c(expression("SOC [\%]"), expression(paste("R", " [", Omega, "]"))),
+  facet_variable = NULL,
+  plot_type = "hex",
+  n_bins = NULL
+)
 }
 \arguments{
 \item{ext_res_tibble}{\link{tibble} made with the \link{extract_resistance}-function.}

@@ -4,9 +4,25 @@
 \alias{compare_windows_ga}
 \title{Compare windows using genetic algorithm}
 \usage{
-compare_windows_ga(I1, I2, V1, V2, Temp1, Temp2, MutationWindow,
-  RestrictTemperature, RestrictVoltage, Wmin, Wmax, Imin, N_evolution = 2e+06,
-  N_keep = 100, trace = TRUE, trace_limit = 10000, return_tibble = TRUE)
+compare_windows_ga(
+  I1,
+  I2,
+  V1,
+  V2,
+  Temp1,
+  Temp2,
+  MutationWindow,
+  RestrictTemperature,
+  RestrictVoltage,
+  Wmin,
+  Wmax,
+  Imin,
+  N_evolution = 2e+06,
+  N_keep = 100,
+  trace = TRUE,
+  trace_limit = 10000,
+  return_tibble = TRUE
+)
 }
 \arguments{
 \item{I1}{Numeric vector of length 'T1'.}

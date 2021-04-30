@@ -4,8 +4,22 @@
 \alias{DEKF}
 \title{Filtering of state-of-charge and health.}
 \usage{
-DEKF(I, V, theta_0, ocv_0, SOC_0, C_max, eta, P = NULL, Q = NULL,
-  R = NULL, dt = 1, K = 2, trace = TRUE, traceLimit = 1e+06)
+DEKF(
+  I,
+  V,
+  theta_0,
+  ocv_0,
+  SOC_0,
+  C_max,
+  eta,
+  P = NULL,
+  Q = NULL,
+  R = NULL,
+  dt = 1,
+  K = 2,
+  trace = TRUE,
+  trace_limit = 1e+06
+)
 }
 \arguments{
 \item{I}{A current profile.}
@@ -34,7 +48,7 @@ DEKF(I, V, theta_0, ocv_0, SOC_0, C_max, eta, P = NULL, Q = NULL,
 
 \item{trace}{TRUE/FALSE: Show trace?}
 
-\item{traceLimit}{Used to limit trace.}
+\item{trace_limit}{Used to limit trace.}
 }
 \value{
 A list containing the voltage, the filtered voltage, the SOC, the polarisation voltage, and the state variance.

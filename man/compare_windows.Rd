@@ -4,9 +4,21 @@
 \alias{compare_windows}
 \title{Compare windows}
 \usage{
-compare_windows(I1, I2, V1, V2, W, W_extension, R, epsilon, delta,
-  extension_type = "voltage", trace = TRUE, trace_limit = 10000,
-  return_tibble = TRUE)
+compare_windows(
+  I1,
+  I2,
+  V1,
+  V2,
+  W,
+  W_extension,
+  R,
+  epsilon,
+  delta,
+  extension_type = "voltage",
+  trace = TRUE,
+  trace_limit = 10000,
+  return_tibble = TRUE
+)
 }
 \arguments{
 \item{I1}{Numeric vector of length 'T1'.}

@@ -4,9 +4,15 @@
 \alias{extractLookupTables}
 \title{Extract look-up tables.}
 \usage{
-extractLookupTables(current, voltage, time_s, t_k, SOCValues = seq(5, 95, 5),
+extractLookupTables(
+  current,
+  voltage,
+  time_s,
+  t_k,
+  SOCValues = seq(5, 95, 5),
   IValues = c(-10, -7.5, -5, -2.5, -1.25, -0.25, 0.25, 1.25, 2.5, 5, 7.5, 10),
-  h = 1)
+  h = 1
+)
 }
 \arguments{
 \item{current}{A charge/discharge cycling current profile. Note: assumes that negative current implies discharging of the battery.}

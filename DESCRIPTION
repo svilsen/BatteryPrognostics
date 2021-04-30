@@ -2,7 +2,7 @@ Package: BatteryPrognostics
 Type: Package
 Title: State of Charge and Health Filtering and Prediction of Li-ion Batteries.
 Version: 0.0.1
-Encoding: utf8
+Encoding: UTF-8
 Date: 2018-08-20
 Author: Søren B. Vilsen
 Maintainer: Søren B. Vilsen <svilsen@math.aau.dk>
@@ -21,7 +21,7 @@ LinkingTo:
     Rcpp, 
     RcppArmadillo,
     BH
-RoxygenNote: 6.0.1
+RoxygenNote: 7.1.1
 Suggests: 
     knitr,
     rmarkdown,

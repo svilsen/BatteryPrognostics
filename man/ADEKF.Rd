@@ -4,8 +4,22 @@
 \alias{ADEKF}
 \title{Filtering of state-of-charge and health.}
 \usage{
-ADEKF(I, V, Temp, Time, theta_0, ocv_0, SOC_0, dual = TRUE, P = NULL,
-  Q = NULL, R = NULL, K = 1, trace = TRUE, traceLimit = 1e+06)
+ADEKF(
+  I,
+  V,
+  Temp,
+  Time,
+  theta_0,
+  ocv_0,
+  SOC_0,
+  dual = TRUE,
+  P = NULL,
+  Q = NULL,
+  R = NULL,
+  K = 1,
+  trace = TRUE,
+  trace_limit = 1e+06
+)
 }
 \arguments{
 \item{I}{A current profile.}
@@ -34,7 +48,7 @@ ADEKF(I, V, Temp, Time, theta_0, ocv_0, SOC_0, dual = TRUE, P = NULL,
 
 \item{trace}{TRUE/FALSE: Show trace?}
 
-\item{traceLimit}{Used to limit trace.}
+\item{trace_limit}{Used to limit trace.}
 }
 \value{
 A list containing the voltage, the filtered voltage, the SOC, the polarisation voltage, and the state variance.

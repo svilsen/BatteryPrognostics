@@ -4,8 +4,14 @@
 \alias{RCK}
 \title{Simulate RC-K model}
 \usage{
-RCK(current, extractedTables, dt = 1, SOCStart = 0, trace = T,
-  traceLimit = 10000)
+RCK(
+  current,
+  extractedTables,
+  dt = 1,
+  SOCStart = 0,
+  trace = T,
+  trace_limit = 10000
+)
 }
 \arguments{
 \item{current}{A current profile.}
@@ -18,7 +24,7 @@ RCK(current, extractedTables, dt = 1, SOCStart = 0, trace = T,
 
 \item{trace}{TRUE/FALSE: Show trace?}
 
-\item{traceLimit}{Only show the trace for the iterations of specified 'traceLimit'.}
+\item{trace_limit}{Only show the trace for the iterations of specified 'trace_limit'.}
 
 \item{voltage}{A current profile reflecting the change in current (not the measured current).}
 }

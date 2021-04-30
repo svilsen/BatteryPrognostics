@@ -4,8 +4,22 @@
 \alias{compare_windows_limited}
 \title{Compare windows limited}
 \usage{
-compare_windows_limited(I1, I2, V1, V2, RI2, W2, W, W_extension, R, epsilon,
-  delta, trace = TRUE, trace_limit = 10000, return_tibble = TRUE)
+compare_windows_limited(
+  I1,
+  I2,
+  V1,
+  V2,
+  RI2,
+  W2,
+  W,
+  W_extension,
+  R,
+  epsilon,
+  delta,
+  trace = TRUE,
+  trace_limit = 10000,
+  return_tibble = TRUE
+)
 }
 \arguments{
 \item{I1}{Numeric vector of length 'T1'.}
