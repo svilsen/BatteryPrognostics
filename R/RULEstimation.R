@@ -104,7 +104,7 @@ simulate_forward_ar <- function(object, s, nr_simulations, nr_forward) {
     for (r in seq_len(nr_simulations)) {
         x_new <- matrix(s, ncol = 1, nrow = nr_forward + 1)
         for (k in seq_len(nr_forward)) {
-            x_new[k + 1, ] <- coefs[1] + coefs[2] * x_new[k, ] + coefs[3] * (T_end + k - 1) + rnorm(1, 0, sigma) # sqrt(k) * rnorm(1, 0, sigma)
+            x_new[k + 1, ] <- coefs[1] + coefs[2] * x_new[k, ] + coefs[3] * (T_end + k - 1) + sqrt(k) * rnorm(1, 0, sigma)
         }
         
         colnames(x_new) <- names(s)
@@ -195,13 +195,14 @@ forward.featurevars <- function(object, ...) {
 #' @param l The lag used in feature modelling.
 #' @param eol A numeric representing the end-of-life criterion.
 #' @param y0 An initial value of the health metric used to calculate the end-of-life. If '\code{NULL}' (default) it uses the first value of '\code{y}'.
+#' @param eol_method The method used to determine end-of-life. Takes a string \code{"first"}, \code{"last"}, or \code{"quantile"}.
 #' @param return_full \code{TRUE/FALSE}: Should all estimated and simulated objects be returned?
 #' @param ... A list of parameters passed to the \code{health_model} function. 
 #' 
 #' @return A list containing the following four elements are returned: 
 #' 
 #' @export
-rul <- function(X, y, health_model, n_ahead = 50, n_simulations = 100, l = 1, eol = 0.8, y0 = NULL, return_full = FALSE, ...) {
+rul <- function(X, y, health_model, n_ahead = 50, n_simulations = 100, l = 1, eol = 0.8, y0 = NULL, eol_method = "first", return_full = FALSE, ...) {
     ## Set-up
     health_model_parameters <- list(...)
     if ((!is.numeric(n_ahead)) || (abs(n_ahead - round(n_ahead)) > 1e-8) || (n_ahead < 1)) {
@@ -229,7 +230,7 @@ rul <- function(X, y, health_model, n_ahead = 50, n_simulations = 100, l = 1, eo
     }
     
     ## Estimate feature model
-    estimated_feature_models <- feature_vars(X, l)
+    estimated_feature_models <- feature_vars(as_tibble(X), l)
     expected_features <- predict(estimated_feature_models, s = NULL, nr_simulations = n_simulations) %>% 
         bind_rows() %>% 
         group_by(Index, Feature) %>% 
@@ -276,9 +277,31 @@ rul <- function(X, y, health_model, n_ahead = 50, n_simulations = 100, l = 1, eo
     
     ## RUL estimation
     eol_value <- eol * y0
-    rul <- sapply(forward_soh, function(xx) {
-        max(which(xx > eol_value)) - 1
-    }) %>% enframe(name = "Simulation", value = "RUL")
+    if (tolower(eol_method) == "first") {
+        rul <- sapply(forward_soh, function(xx) {
+            min(which(xx < eol_value))
+        }) %>% enframe(name = "Simulation", value = "RUL")
+    } else if (tolower(eol_method) == "last") {
+        rul <- sapply(forward_soh, function(xx) {
+            max(which(xx > eol_value))
+        }) %>% enframe(name = "Simulation", value = "RUL")
+    } else if (tolower(eol_method) == "quantile") {
+        rul <- forward_soh %>% 
+            enframe(name = "SIM", value = "VAL") %>% 
+            unnest(cols = "VAL") %>% 
+            group_by(SIM) %>% 
+            mutate(IND = seq_len(n()), VAL = VAL[, 1]) %>% 
+            ungroup() %>% 
+            group_by(IND) %>% 
+            summarise(QLower = quantile(VAL, probs = 0.025), 
+                      Q = quantile(VAL, probs = 0.5), 
+                      QUpper = quantile(VAL, probs = 0.975), 
+                      .groups = "drop") %>% 
+            mutate(RUL = n_ahead - IND + 1) %>% 
+            select(RUL, QLower, Q, QUpper)
+    } else {
+        stop("'eol_method' not implemented.")
+    }
     
     res <- list(
         RUL = rul,

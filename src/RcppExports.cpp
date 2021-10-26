@@ -6,6 +6,11 @@
 
 using namespace Rcpp;
 
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
 // SOCADEFKFilterCpp
 Rcpp::List SOCADEFKFilterCpp(const arma::colvec& I, const arma::colvec& V, const arma::colvec& Temp, const arma::colvec& Time, const arma::colvec& theta_0, const arma::colvec& ocv_0, const double& SOC_0, const std::vector<arma::mat>& P, const std::vector<arma::mat>& Q, const std::vector<arma::mat>& R, const unsigned int& K, const bool& dual, const bool& trace, const unsigned int& trace_limit);
 RcppExport SEXP _BatteryPrognostics_SOCADEFKFilterCpp(SEXP ISEXP, SEXP VSEXP, SEXP TempSEXP, SEXP TimeSEXP, SEXP theta_0SEXP, SEXP ocv_0SEXP, SEXP SOC_0SEXP, SEXP PSEXP, SEXP QSEXP, SEXP RSEXP, SEXP KSEXP, SEXP dualSEXP, SEXP traceSEXP, SEXP trace_limitSEXP) {
